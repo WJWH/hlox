@@ -34,7 +34,8 @@ runFile filepath = do
   contents <- readFile filepath
   context <- emptyContext
   finalContext <- runReaderT (run contents) context
-  case hadError finalContext of
+  wasError <- readIORef $ hadError context
+  case wasError of
     True -> exitWith (ExitFailure 65)
     False -> return finalContext
 
@@ -46,21 +47,23 @@ runPrompt context = do
     "" -> return context
     _ -> do
       newContext <- runReaderT (run nextLine) context
-      resetErrors
+      let newContext' = resetErrors newContext
       runPrompt newContext
 
-resetErrors :: IO ()
-resetErrors = undefined
+resetErrors :: InterpreterContext -> IO ()
+resetErrors context = do
+  let ref = hadError context
+  writeIORef ref False
 
 run :: String -> HLox InterpreterContext
 run input = do
-  let tokens = scanner input
+  let tokens = scanner 1 input
   case tokens of
     [Token (ERROR err) _ _] -> do
       liftIO $ putStrLn err
       ask >>= return
-    Right tokens -> do
-      liftIO $ mapM_ print tokens
+    someTokens -> do
+      liftIO $ mapM_ print someTokens
       ask >>= return
 
 
