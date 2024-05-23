@@ -1,20 +1,28 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main where
 
-import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
+import Control.Monad.Reader
+import Data.IORef
 import System.Environment
 import System.Exit
 
-data InterpreterContext = Context { hadError :: Bool } deriving (Show,Eq) -- for now, to make it compile
-emptyContext = Context False
+import Scanner
+
+type HLox = ReaderT InterpreterContext IO
+data InterpreterContext = Context { hadError :: IORef Bool } deriving (Eq) -- for now, to make it compile
+instance Show InterpreterContext where
+  show (Context _) = "some context"
+
+emptyContext :: IO InterpreterContext
+emptyContext = do
+  ref <- newIORef False
+  return $ Context ref
 
 main :: IO ()
 main = do
   args <- getArgs
+  context <- emptyContext
   _ <- case args of
-    [] -> runPrompt emptyContext
+    [] -> runPrompt context
     (filename:[]) -> runFile filename
     _ -> do
       putStrLn "Usage: hlox [script]"
@@ -23,8 +31,9 @@ main = do
 
 runFile :: FilePath -> IO InterpreterContext
 runFile filepath = do
-  contents <- TIO.readFile filepath
-  finalContext <- run emptyContext contents
+  contents <- readFile filepath
+  context <- emptyContext
+  finalContext <- runReaderT (run contents) context
   case hadError finalContext of
     True -> exitWith (ExitFailure 65)
     False -> return finalContext
@@ -32,21 +41,27 @@ runFile filepath = do
 runPrompt :: InterpreterContext -> IO InterpreterContext
 runPrompt context = do
   putStr "> "
-  nextLine <- TIO.getLine
+  nextLine <- getLine
   case nextLine of
     "" -> return context
     _ -> do
-      newContext <- run context nextLine
+      newContext <- runReaderT (run nextLine) context
       resetErrors
       runPrompt newContext
 
+resetErrors :: IO ()
 resetErrors = undefined
 
-run :: InterpreterContext -> T.Text -> IO InterpreterContext
-run context input = do
-  tokens <- scanner input
-  mapM_ print tokens
-  return context
+run :: String -> HLox InterpreterContext
+run input = do
+  let tokens = scanner input
+  case tokens of
+    [Token (ERROR err) _ _] -> do
+      liftIO $ putStrLn err
+      ask >>= return
+    Right tokens -> do
+      liftIO $ mapM_ print tokens
+      ask >>= return
 
 
 error :: Int -> String -> IO ()
@@ -56,5 +71,3 @@ error linenr message = report linenr "" message
 report :: Int -> String -> String -> IO ()
 report linenr location message = do
   putStrLn $ concat ["[line ", show linenr, "] Error", location, ": ", message]
-
-scanner = undefined
