@@ -69,6 +69,7 @@ executable hlox
 
     -- Other library packages from which modules are imported.
     build-depends:    base ^>=4.19.0.0,
+                      mtl,
                       text
 
     -- Directories containing source files.
