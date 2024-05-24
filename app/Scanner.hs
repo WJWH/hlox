@@ -121,7 +121,9 @@ numberLiteral :: String -> (Double,String)
 numberLiteral xs = (num,rest)
   where (firstPart,xs') = span isDigit xs
         (num,rest) = case xs' of
-          ('.':_) -> (read $ concat [firstPart, ".", fractionalPart], restOfInput) -- possible bug? it will read 123. as a number with a fractional part now
+          ('.':_) -> if (null fractionalPart)
+            then (read firstPart, xs') -- the fractional part was the empty string so the dot was not part of the number
+            else (read $ concat [firstPart, ".", fractionalPart], restOfInput)
           _ -> (read firstPart, xs') -- no fractional part
         (fractionalPart, restOfInput) = span isDigit (drop 1 xs')
 
