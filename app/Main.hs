@@ -4,6 +4,7 @@ import Control.Monad.Reader
 import Data.IORef
 import System.Environment
 import System.Exit
+import System.IO
 
 import Scanner
 
@@ -42,7 +43,8 @@ runFile filepath = do
 runPrompt :: InterpreterContext -> IO InterpreterContext
 runPrompt context = do
   putStr "> "
-  nextLine <- getLine
+  hFlush stdout
+  nextLine <- getLine -- maybe catch isEOFError and turn into empty line?
   case nextLine of
     "" -> return context
     _ -> do
