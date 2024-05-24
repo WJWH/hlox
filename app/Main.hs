@@ -47,7 +47,7 @@ runPrompt context = do
     "" -> return context
     _ -> do
       newContext <- runReaderT (run nextLine) context
-      let newContext' = resetErrors newContext
+      resetErrors newContext
       runPrompt newContext
 
 resetErrors :: InterpreterContext -> IO ()
