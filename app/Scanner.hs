@@ -61,6 +61,10 @@ scanner !linenr ('>':'=':xs) = Token GREATER_EQUAL ">=" linenr : scanner linenr 
 scanner !linenr ('>':xs) = Token GREATER ">" linenr : scanner linenr xs
 scanner !linenr ('<':'=':xs) = Token LESS_EQUAL "<=" linenr : scanner linenr xs
 scanner !linenr ('<':xs) = Token LESS "<" linenr : scanner linenr xs
+-- comment, no token generated but we just drop everything until the newline. The newline doesn't need dropping because we want
+-- that to be handled by the `\n` handler which also updates the linenr
+scanner !linenr ('/':'/':xs) = scanner linenr $ dropWhile (/= '\n') xs
+scanner !linenr ('/':xs) = Token SLASH "/" linenr : scanner linenr xs
 -- single token lexemes
 scanner !linenr ('(':xs) = Token LEFT_PAREN "(" linenr : scanner linenr xs
 scanner !linenr (')':xs) = Token RIGHT_PAREN ")" linenr : scanner linenr xs
@@ -71,7 +75,6 @@ scanner !linenr ('.':xs) = Token DOT "." linenr : scanner linenr xs
 scanner !linenr ('-':xs) = Token MINUS "-" linenr : scanner linenr xs
 scanner !linenr ('+':xs) = Token PLUS "+" linenr : scanner linenr xs
 scanner !linenr (';':xs) = Token SEMICOLON ";" linenr : scanner linenr xs
-scanner !linenr ('/':xs) = Token SLASH "/" linenr : scanner linenr xs
 scanner !linenr ('*':xs) = Token STAR "*" linenr : scanner linenr xs
 -- unknown character leads to error
 scanner !linenr (c:xs) = Token (ERROR $ concat ["Unknown character: ", show c, " on line ", show linenr]) "" linenr : scanner linenr xs
