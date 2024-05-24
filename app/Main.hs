@@ -58,13 +58,8 @@ resetErrors context = do
 run :: String -> HLox InterpreterContext
 run input = do
   let tokens = scanner 1 input
-  case tokens of
-    [Token (ERROR err) _ _] -> do
-      liftIO $ putStrLn err
-      ask >>= return
-    someTokens -> do
-      liftIO $ mapM_ print someTokens
-      ask >>= return
+  liftIO $ mapM_ print tokens
+  ask >>= return
 
 
 error :: Int -> String -> IO ()
