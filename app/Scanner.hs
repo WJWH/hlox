@@ -1,5 +1,8 @@
 module Scanner where
 
+import Data.Char
+import qualified Data.Map as M
+
 data TokenType = LEFT_PAREN -- single character tokens
                | RIGHT_PAREN
                | LEFT_BRACE
@@ -44,6 +47,26 @@ data TokenType = LEFT_PAREN -- single character tokens
 
 data Token = Token { tokenType :: TokenType, lexeme :: String, line :: Int } deriving (Show,Eq)
 
+reservedWords :: M.Map String TokenType
+reservedWords = M.fromList [
+    ("and",AND),
+    ("class",CLASS),
+    ("else",ELSE),
+    ("false",FALSE),
+    ("for",FOR),
+    ("fun",FUN),
+    ("if",IF),
+    ("nil",NIL),
+    ("or",OR),
+    ("print",PRINT),
+    ("return",RETURN),
+    ("super",SUPER),
+    ("this",THIS),
+    ("true",TRUE),
+    ("var",VAR),
+    ("while",WHILE)
+  ]
+
 scanner :: Int -> String -> [Token]
 -- EOF, natural end of recursion
 scanner !linenr [] = [Token EOF "" linenr]
@@ -76,5 +99,35 @@ scanner !linenr ('-':xs) = Token MINUS "-" linenr : scanner linenr xs
 scanner !linenr ('+':xs) = Token PLUS "+" linenr : scanner linenr xs
 scanner !linenr (';':xs) = Token SEMICOLON ";" linenr : scanner linenr xs
 scanner !linenr ('*':xs) = Token STAR "*" linenr : scanner linenr xs
--- unknown character leads to error
-scanner !linenr (c:xs) = Token (ERROR $ concat ["Unknown character: ", show c, " on line ", show linenr]) "" linenr : scanner linenr xs
+-- strings
+scanner !linenr ('"':xs) = Token (STRING str) str linenr : scanner (linenr + newlineCount) rest
+  where (str,newlineCount,rest) = stringLiteral xs
+scanner !linenr (c:xs)
+  -- numbers
+  | isDigit c = Token (NUMBER num) (show num) linenr : scanner (linenr) rest
+  -- identifiers and reserved words
+  | isAlpha c = Token (tokType) "" linenr : scanner (linenr) tokRest -- how to put the string for the lexeme in here properly?
+  -- unknown character leads to error
+  | otherwise = Token (ERROR $ concat ["Unknown character: ", show c, " on line ", show linenr]) "" linenr : scanner linenr xs
+  where (num,rest) = numberLiteral (c:xs)
+        (tokType,tokRest) = identifier (c:xs)
+
+stringLiteral :: String -> (String,Int,String)
+stringLiteral xs = (str,newlineCount, drop 1 rest) -- skip the closing '"' too
+  where (str, rest) = span (/= '"') xs
+        newlineCount = length $ filter (== '\n') str
+
+numberLiteral :: String -> (Double,String)
+numberLiteral xs = (num,rest)
+  where (firstPart,xs') = span isDigit xs
+        (num,rest) = case xs' of
+          ('.':_) -> (read $ concat [firstPart, ".", fractionalPart], restOfInput) -- possible bug? it will read 123. as a number with a fractional part now
+          _ -> (read firstPart, xs') -- no fractional part
+        (fractionalPart, restOfInput) = span isDigit (drop 1 xs')
+
+identifier :: String -> (TokenType,String)
+identifier xs = (token,rest)
+  where (name,rest) = span isAlphaNum xs
+        token = case M.lookup name reservedWords of
+          Nothing -> IDENTIFIER name
+          Just tok -> tok
