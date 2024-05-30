@@ -43,3 +43,18 @@ data TokenType = LEFT_PAREN -- single character tokens
                deriving (Show,Eq)
 
 data Token = Token { tokenType :: TokenType, lexeme :: String, line :: Int } deriving (Show,Eq)
+
+data UnaryOperation = Negate | Bang deriving (Show,Eq)
+data BinaryOperation = DoubleEqual | NotEqual | LessThan | LessEqualThan | GreaterThan | GreaterEqualThan
+                     | Add | Subtract | Multiply | Divide deriving (Show,Eq)
+data LiteralContents = NumberLit Double
+                     | StringLit String
+                     | TrueLit
+                     | FalseLit
+                     | NilLit
+                     deriving (Show,Eq)
+
+data Expression = Grouping Expression
+                | Unary UnaryOperation Expression
+                | Binary BinaryOperation Expression Expression
+                | Literal LiteralContents
