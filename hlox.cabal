@@ -73,6 +73,7 @@ executable hlox
     build-depends:    base ^>=4.19.0.0,
                       containers,
                       mtl,
+                      parsec,
                       text
 
     -- Directories containing source files.
