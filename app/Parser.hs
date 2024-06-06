@@ -83,4 +83,10 @@ literal = do
   return $ Literal litContents
 
 expression :: TokenParser Expression
-expression = literal <|> binary <|> unary <|> grouping
+expression = do
+  expr <- try unary <|> try grouping <|> try literal <|> binary
+  matchToken SEMICOLON
+  matchToken EOF
+  return $ expr
+-- This doesn't actually work at all, only literals get matched...
+-- Soooooooo also this doesn't do any operator precendence.

@@ -58,3 +58,4 @@ data Expression = Grouping Expression
                 | Unary UnaryOperation Expression
                 | Binary BinaryOperation Expression Expression
                 | Literal LiteralContents
+                deriving (Show,Eq)

@@ -5,8 +5,10 @@ import Data.IORef
 import System.Environment
 import System.Exit
 import System.IO
+import Text.Parsec
 
 import Scanner
+import Parser
 
 type HLox = ReaderT InterpreterContext IO
 data InterpreterContext = Context { hadError :: IORef Bool } deriving (Eq) -- for now, to make it compile
@@ -60,7 +62,9 @@ resetErrors context = do
 run :: String -> HLox InterpreterContext
 run input = do
   let tokens = scanner 1 input
+  let parseResult = parse expression "" tokens
   liftIO $ mapM_ print tokens
+  liftIO $ print parseResult
   ask >>= return
 
 
