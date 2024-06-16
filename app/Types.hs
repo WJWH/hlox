@@ -59,3 +59,9 @@ data Expression = Grouping Expression
                 | Binary BinaryOperation Expression Expression
                 | Literal LiteralContents
                 deriving (Show,Eq)
+
+data RuntimeValue = Number Double
+                  | String String
+                  | Boolean Bool
+                  | Null
+                  deriving (Show,Eq)
