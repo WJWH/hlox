@@ -7,17 +7,15 @@ import Text.Parsec.Pos
 import Types
 
 -- From the book, this is our grammar for now:
--- expression     → literal
---                | unary
---                | binary
---                | grouping ;
-
--- literal        → NUMBER | STRING | "true" | "false" | "nil" ;
--- grouping       → "(" expression ")" ;
--- unary          → ( "-" | "!" ) expression ;
--- binary         → expression operator expression ;
--- operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
---                | "+"  | "-"  | "*" | "/" ;
+-- expression     → equality ;
+-- equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+-- comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+-- term           → factor ( ( "-" | "+" ) factor )* ;
+-- factor         → unary ( ( "/" | "*" ) unary )* ;
+-- unary          → ( "!" | "-" ) unary
+--                | primary ;
+-- primary        → NUMBER | STRING | "true" | "false" | "nil"
+--                | "(" expression ")" ;
 
 type TokenParser a = ParsecT [Token] () Identity a
 
@@ -25,49 +23,12 @@ type TokenParser a = ParsecT [Token] () Identity a
 matchToken :: TokenType -> TokenParser Token
 matchToken toktype = token show (const (initialPos "borp")) $ \tok -> if tokenType tok == toktype then Just tok else Nothing
 
-binaryOperator :: TokenParser BinaryOperation
-binaryOperator = do
-  tok <- choice [matchToken EQUAL_EQUAL, matchToken BANG_EQUAL, matchToken LESS, matchToken LESS_EQUAL,
-                    matchToken GREATER, matchToken GREATER_EQUAL, matchToken PLUS, matchToken MINUS, matchToken STAR, matchToken SLASH]
-  return $ case tokenType tok of
-    EQUAL_EQUAL -> DoubleEqual
-    BANG_EQUAL -> NotEqual
-    LESS -> LessThan
-    LESS_EQUAL -> LessEqualThan
-    GREATER -> GreaterThan
-    GREATER_EQUAL -> GreaterEqualThan
-    PLUS -> Add
-    MINUS -> Subtract
-    STAR -> Multiply
-    SLASH -> Divide
-    _ -> error "Unreachable"
-
-unaryOperator :: TokenParser UnaryOperation
-unaryOperator = do
-  tok <- choice [matchToken MINUS, matchToken BANG]
-  return $ case tokenType tok of
-    MINUS -> Negate
-    BANG -> Bang
-    _ -> error "Unreachable"
-
-binary :: TokenParser Expression
-binary = do
-  leftSide <- expression
-  operator <- binaryOperator
-  rightSide <- expression
-  return $ Binary operator leftSide rightSide
-
-unary :: TokenParser Expression
-unary = do
-  operator <- unaryOperator
-  expr <- expression
-  return $ Unary operator expr
-
 -- something between parentheses
 grouping :: TokenParser Expression
 grouping = do
   between (matchToken LEFT_PAREN) (matchToken RIGHT_PAREN) expression
 
+-- For tokens that may have content
 matchLiteral :: TokenParser LiteralContents
 matchLiteral = token show (const (initialPos "borp")) $ \tok -> case tokenType tok of
   TRUE -> Just TrueLit
@@ -82,11 +43,76 @@ literal = do
   litContents <- matchLiteral
   return $ Literal litContents
 
-expression :: TokenParser Expression
-expression = do
-  expr <- try unary <|> try grouping <|> try literal <|> binary
-  matchToken SEMICOLON
-  matchToken EOF
-  return $ expr
--- This doesn't actually work at all, only literals get matched...
--- Soooooooo also this doesn't do any operator precendence.
+equalityOperator :: TokenParser BinaryOperation
+equalityOperator = do
+  tok <- choice [matchToken EQUAL_EQUAL, matchToken BANG_EQUAL]
+  return $ case tokenType tok of
+    EQUAL_EQUAL -> DoubleEqual
+    BANG_EQUAL -> NotEqual
+    _ -> error "Unreachable"
+
+comparisonOperator :: TokenParser BinaryOperation
+comparisonOperator = do
+  tok <- choice [matchToken LESS, matchToken LESS_EQUAL, matchToken GREATER, matchToken GREATER_EQUAL]
+  return $ case tokenType tok of
+    LESS -> LessThan
+    LESS_EQUAL -> LessEqualThan
+    GREATER -> GreaterThan
+    GREATER_EQUAL -> GreaterEqualThan
+    _ -> error "Unreachable"
+
+addSubtractOperator :: TokenParser BinaryOperation
+addSubtractOperator = do
+  tok <- choice [matchToken PLUS, matchToken MINUS]
+  return $ case tokenType tok of
+    PLUS -> Add
+    MINUS -> Subtract
+    _ -> error "Unreachable"
+
+divideMultiplyOperator :: TokenParser BinaryOperation
+divideMultiplyOperator = do
+  tok <- choice [matchToken STAR, matchToken SLASH]
+  return $ case tokenType tok of
+    STAR -> Multiply
+    SLASH -> Divide
+    _ -> error "Unreachable"
+
+unaryOperator :: TokenParser UnaryOperation
+unaryOperator = do
+  tok <- choice [matchToken MINUS, matchToken BANG]
+  return $ case tokenType tok of
+    MINUS -> Negate
+    BANG -> Bang
+    _ -> error "Unreachable"
+
+-- they all look the same anyway, only separated because of operator precedence
+binaryGrammarRule element operators = do
+  firstElement <- element
+  nexts <- many $ do
+    op <- operators
+    nextElement <- element
+    return (op,nextElement)
+  return $ foldBinaryOps firstElement nexts
+
+unary = do
+  ops <- many unaryOperator
+  prim <- primary
+  return $ foldUnaryOps prim ops
+
+foldBinaryOps :: Expression -> [(BinaryOperation, Expression)] -> Expression
+foldBinaryOps first [] = first
+foldBinaryOps first ((op,expr):xs) = foldBinaryOps (Binary op first expr) xs
+
+foldUnaryOps :: Expression -> [UnaryOperation] -> Expression
+foldUnaryOps prim [] = prim
+-- note this should go "inside out" while the binary one goes the other way
+foldUnaryOps prim (op:ops) = Unary op (foldUnaryOps prim ops)
+
+expression = equality
+equality = binaryGrammarRule comparison equalityOperator
+comparison = binaryGrammarRule term comparisonOperator
+term = binaryGrammarRule factor addSubtractOperator
+factor = binaryGrammarRule unary divideMultiplyOperator
+
+primary :: TokenParser Expression
+primary = literal <|> grouping
