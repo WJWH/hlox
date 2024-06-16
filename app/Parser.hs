@@ -21,12 +21,13 @@ type TokenParser a = ParsecT [Token] () Identity a
 
 -- for tokens that have no content
 matchToken :: TokenType -> TokenParser Token
-matchToken toktype = token show (const (initialPos "borp")) $ \tok -> if tokenType tok == toktype then Just tok else Nothing
+matchToken toktype = token show (\tok -> (initialPos "borp")) $ \tok -> if tokenType tok == toktype then Just tok else Nothing
 
 -- something between parentheses
 grouping :: TokenParser Expression
 grouping = do
-  between (matchToken LEFT_PAREN) (matchToken RIGHT_PAREN) expression
+  expr <- between (matchToken LEFT_PAREN) (matchToken RIGHT_PAREN) expression
+  return $ Grouping expr
 
 -- For tokens that may have content
 matchLiteral :: TokenParser LiteralContents
@@ -43,6 +44,8 @@ literal = do
   litContents <- matchLiteral
   return $ Literal litContents
 
+-- This feels like some common structure can be extracted, but it's tricky due to the tokens and AST nodes
+-- not always having the same name.
 equalityOperator :: TokenParser BinaryOperation
 equalityOperator = do
   tok <- choice [matchToken EQUAL_EQUAL, matchToken BANG_EQUAL]
