@@ -63,8 +63,13 @@ run :: String -> HLox InterpreterContext
 run input = do
   let tokens = scanner 1 input
   let parseResult = parse expression "" tokens
-  liftIO $ mapM_ print tokens
-  liftIO $ print parseResult
+  case parseResult of
+    Left err -> do
+      errorRef <- asks hadError
+      liftIO $ writeIORef errorRef True
+      liftIO $ print err
+    Right expr -> do
+      liftIO $ print expr
   ask >>= return
 
 
