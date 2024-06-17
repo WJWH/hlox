@@ -9,6 +9,7 @@ import Text.Parsec
 
 import Scanner
 import Parser
+import Interpreter
 
 type HLox = ReaderT InterpreterContext IO
 data InterpreterContext = Context { hadError :: IORef Bool } deriving (Eq) -- for now, to make it compile
@@ -70,6 +71,7 @@ run input = do
       liftIO $ print err
     Right expr -> do
       liftIO $ print expr
+      liftIO $ interpret expr
   ask >>= return
 
 
