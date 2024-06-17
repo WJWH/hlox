@@ -2,4 +2,25 @@
 
 This is a repo containing a Haskell version of the Lox interpreter from the first part of the "Crafting Interpreters" book.
 
-Not much to see here at the moment, as I'm just getting started.
+## Structure
+
+All the modules so far are named after the Java classes used in the book. `Scanner` contains the tokeniser, `Parser` contains the parser, etc.
+
+For tokenising, it just uses `String` everywhere because pattern matching makes this whole thing a breeze and we're unlikely to ever come across any source files large enough that switching to `Text` would be worth it.
+
+The parser is a fairly straightforward `Parsec` parser, with the particularity that it operates on tokens directly rather than on characters as most tutorials do. This is because I already had a tokeniser module from the previous chapter.
+
+The interpreter is implemented with the following types:
+```
+type Interpreter = ExceptT InterpreterError (StateT InterpreterState IO)
+
+runInterpreter :: InterpreterState -> Interpreter a -> IO (Either InterpreterError a, InterpreterState)
+runInterpreter st i = runStateT (runExceptT i) st
+```
+
+This monad stack was chosen because:
+- `ExceptT` allows is to throw exceptions from anywhere without having to wrap/unwrap Eithers all the time. This also matches the book, which depends on (Java) exceptions to bubble up errors.
+- `StateT` to keep state about variable bindings etc.
+- `IO` as base monad is required because the `PRINT` method is baked right into the language.
+
+So far it can only evaluatie expressions, which are done in a very straightforward way by starting at the root of the AST and evaluating all its nodes recursively.
