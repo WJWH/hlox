@@ -23,4 +23,4 @@ This monad stack was chosen because:
 - `StateT` to keep state about variable bindings etc.
 - `IO` as base monad is required because the `PRINT` method is baked right into the language.
 
-So far it can only evaluatie expressions, which are done in a very straightforward way by starting at the root of the AST and evaluating all its nodes recursively.
+So far it can only evaluate expressions, which are done in a very straightforward way by starting at the root of the AST and evaluating all its nodes recursively.
