@@ -59,6 +59,7 @@ data Expression = Grouping Expression
                 | Binary BinaryOperation Expression Expression
                 | Literal LiteralContents
                 | Variable String
+                | Assignment String Expression
                 deriving (Show,Eq)
 
 data Statement = ExprStatement Expression
