@@ -29,6 +29,11 @@ grouping = do
   expr <- between (matchToken LEFT_PAREN) (matchToken RIGHT_PAREN) expression
   return $ Grouping expr
 
+identifier :: TokenParser Expression
+identifier = token show (const (initialPos "borp")) $ \tok -> case tokenType tok of
+  IDENTIFIER str -> Just $ Variable str
+  _ -> Nothing
+
 -- For tokens that may have content
 matchLiteral :: TokenParser LiteralContents
 matchLiteral = token show (const (initialPos "borp")) $ \tok -> case tokenType tok of
@@ -103,7 +108,7 @@ unary = do
   return $ foldUnaryOps prim ops
 
 primary :: TokenParser Expression
-primary = literal <|> grouping
+primary = literal <|> identifier <|> grouping
 
 -- some utility functions to handle expressions with multiple operators like 1+2+3+4 and !!abc
 foldBinaryOps :: Expression -> [(BinaryOperation, Expression)] -> Expression
@@ -136,5 +141,30 @@ expressionStatement = do
 
 statement = printStatement <|> expressionStatement
 
-statements :: TokenParser [Statement]
-statements = many statement
+varName :: Expression -> String
+varName (Variable num) = num
+varName _ = error "Unreachable, tried to call numVal on non-number runtime value"
+
+varDeclaration :: TokenParser Declaration
+varDeclaration = do
+  matchToken VAR
+  name <- identifier
+  initializer <- option Nothing $ do
+    matchToken EQUAL
+    expr <- expression
+    return $ Just expr
+  matchToken SEMICOLON <?> "semicolon at end of variable declaration"
+  return $ VariableDeclaration (varName name) initializer
+
+stmtDeclaration :: TokenParser Declaration
+stmtDeclaration = do
+  stmt <- statement
+  return $ StatementDeclaration stmt
+
+declaration = varDeclaration <|> stmtDeclaration
+
+program :: TokenParser [Declaration]
+program = do
+  decls <- many declaration
+  matchToken EOF
+  return decls

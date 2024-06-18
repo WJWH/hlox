@@ -63,7 +63,7 @@ resetErrors context = do
 run :: String -> HLox InterpreterContext
 run input = do
   let tokens = scanner 1 input
-  let parseResult = parse statements "" tokens
+  let parseResult = parse program "" tokens
   case parseResult of
     Left err -> do
       errorRef <- asks hadError
