@@ -1,6 +1,5 @@
 module Main where
 
-import Control.Monad.Reader
 import Data.IORef
 import System.Environment
 import System.Exit
@@ -11,15 +10,13 @@ import Scanner
 import Parser
 import Interpreter
 
-type HLox = ReaderT InterpreterContext IO
-data InterpreterContext = Context { hadError :: IORef Bool } deriving (Eq) -- for now, to make it compile
+data InterpreterContext = Context { hadError :: Bool, interpreterState :: InterpreterState } deriving (Eq) -- for now, to make it compile
 instance Show InterpreterContext where
-  show (Context _) = "some context"
+  show (Context _ _) = "some context"
 
 emptyContext :: IO InterpreterContext
 emptyContext = do
-  ref <- newIORef False
-  return $ Context ref
+  return $ Context False newInterpreterState
 
 main :: IO ()
 main = do
@@ -37,8 +34,8 @@ runFile :: FilePath -> IO InterpreterContext
 runFile filepath = do
   contents <- readFile filepath
   context <- emptyContext
-  finalContext <- runReaderT (run contents) context
-  wasError <- readIORef $ hadError context
+  finalContext <- run context contents
+  let wasError = hadError context
   case wasError of
     True -> exitWith (ExitFailure 65)
     False -> return finalContext
@@ -51,29 +48,25 @@ runPrompt context = do
   case nextLine of
     "" -> return context
     _ -> do
-      newContext <- runReaderT (run nextLine) context
-      resetErrors newContext
-      runPrompt newContext
+      newContext <- run context nextLine
+      let resetContext = resetErrors newContext
+      runPrompt resetContext
 
-resetErrors :: InterpreterContext -> IO ()
-resetErrors context = do
-  let ref = hadError context
-  writeIORef ref False
+resetErrors :: InterpreterContext -> InterpreterContext
+resetErrors context = context { hadError = True }
 
-run :: String -> HLox InterpreterContext
-run input = do
+run :: InterpreterContext -> String -> IO InterpreterContext
+run context input = do
   let tokens = scanner 1 input
   let parseResult = parse program "" tokens
   case parseResult of
     Left err -> do
-      errorRef <- asks hadError
-      liftIO $ writeIORef errorRef True
-      liftIO $ print err
+      print err
+      return $ context { hadError = True }
     Right stmts -> do
-      liftIO $ print stmts
-      liftIO $ interpret stmts
-  ask >>= return
-
+      print stmts
+      newState <- interpret (interpreterState context) stmts
+      return $ context { interpreterState = newState }
 
 error :: Int -> String -> IO ()
 error linenr message = report linenr "" message
