@@ -145,7 +145,7 @@ varName :: Expression -> String
 varName (Variable num) = num
 varName _ = error "Unreachable, tried to call numVal on non-number runtime value"
 
-varDeclaration :: TokenParser Declaration
+varDeclaration :: TokenParser Statement
 varDeclaration = do
   matchToken VAR
   name <- identifier
@@ -156,14 +156,9 @@ varDeclaration = do
   matchToken SEMICOLON <?> "semicolon at end of variable declaration"
   return $ VariableDeclaration (varName name) initializer
 
-stmtDeclaration :: TokenParser Declaration
-stmtDeclaration = do
-  stmt <- statement
-  return $ StatementDeclaration stmt
+declaration = varDeclaration <|> statement
 
-declaration = varDeclaration <|> stmtDeclaration
-
-program :: TokenParser [Declaration]
+program :: TokenParser [Statement]
 program = do
   decls <- many declaration
   matchToken EOF

@@ -63,11 +63,8 @@ data Expression = Grouping Expression
 
 data Statement = ExprStatement Expression
                | PrintStatement Expression
+               | VariableDeclaration String (Maybe Expression)
                deriving (Show,Eq)
-
-data Declaration = VariableDeclaration String (Maybe Expression)
-                 | StatementDeclaration Statement
-                 deriving (Show,Eq)
 
 data RuntimeValue = Number Double
                   | String String
