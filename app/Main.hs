@@ -63,15 +63,15 @@ resetErrors context = do
 run :: String -> HLox InterpreterContext
 run input = do
   let tokens = scanner 1 input
-  let parseResult = parse expression "" tokens
+  let parseResult = parse statements "" tokens
   case parseResult of
     Left err -> do
       errorRef <- asks hadError
       liftIO $ writeIORef errorRef True
       liftIO $ print err
-    Right expr -> do
-      liftIO $ print expr
-      liftIO $ interpret expr
+    Right stmts -> do
+      liftIO $ print stmts
+      liftIO $ interpret stmts
   ask >>= return
 
 

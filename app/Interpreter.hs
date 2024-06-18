@@ -1,6 +1,5 @@
 module Interpreter where
 
-import Control.Monad
 import Control.Monad.Except
 import Control.Monad.State
 
@@ -23,9 +22,9 @@ newInterpreterState = InterpreterState
 runInterpreter :: InterpreterState -> Interpreter a -> IO (Either InterpreterError a, InterpreterState)
 runInterpreter st i = runStateT (runExceptT i) st
 
-interpret :: Expression -> IO ()
-interpret expr = do
-  (result, _finalState) <- runInterpreter newInterpreterState (evaluate expr)
+interpret :: [Statement] -> IO ()
+interpret stmts = do
+  (result, _finalState) <- runInterpreter newInterpreterState (executeMany stmts)
   either (\err -> print err) (\res -> print res) result
 
 executeMany :: [Statement] -> Interpreter ()
