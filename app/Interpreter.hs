@@ -2,6 +2,7 @@ module Interpreter where
 
 import Control.Monad.Except
 import Control.Monad.State
+import qualified Data.Map as M
 
 import Types
 
@@ -11,21 +12,22 @@ import Types
 -- - StateT to keep state about variable bindings etc
 -- - IO as base monad is required because the PRINT method is baked right into the language
 type Interpreter = ExceptT InterpreterError (StateT InterpreterState IO)
-data InterpreterState = InterpreterState {  } deriving (Show,Eq)
+data InterpreterState = InterpreterState { bindings :: M.Map String RuntimeValue } deriving (Show,Eq)
 data InterpreterError = ArgumentError { description :: String }
+                      | RuntimeError { description :: String }
                       deriving (Show,Eq)
 
 newInterpreterState :: InterpreterState
-newInterpreterState = InterpreterState
+newInterpreterState = InterpreterState (M.empty)
 
 -- and then:
 runInterpreter :: InterpreterState -> Interpreter a -> IO (Either InterpreterError a, InterpreterState)
 runInterpreter st i = runStateT (runExceptT i) st
 
-interpret :: [Statement] -> IO ()
-interpret stmts = do
-  (result, _finalState) <- runInterpreter newInterpreterState (executeMany stmts)
-  either (\err -> print err) (\_res -> return ()) result
+interpret :: InterpreterState -> [Statement] -> IO InterpreterState
+interpret startState stmts = do
+  (result, finalState) <- runInterpreter startState (executeMany stmts)
+  either (\err -> print err >> return startState) (\_res -> return finalState) result
 
 executeMany :: [Statement] -> Interpreter ()
 executeMany stmts = sequence_ $ map execute stmts
@@ -35,6 +37,12 @@ execute (ExprStatement expr) = evaluate expr >> return ()
 execute (PrintStatement expr) = do
   exprVal <- evaluate expr
   liftIO . putStrLn $ stringify exprVal
+execute (VariableDeclaration varName maybeExpr) = do
+  case maybeExpr of
+    Nothing -> defineVar varName Null
+    Just expr -> do
+      exprVal <- evaluate expr
+      defineVar varName exprVal
 
 evaluate :: Expression -> Interpreter RuntimeValue
 evaluate (Literal (NumberLit num)) = return $ Number num
@@ -87,6 +95,12 @@ evaluate (Binary op left right) = do
       (Number l, Number r) -> return . Number $ l + r
       (String ll, String rr) -> return . String $ ll ++ rr
       _ -> throwError $ ArgumentError ("Arguments to Plus must be either two Numbers or two Strings")
+evaluate (Variable name) = getVar name
+evaluate (Assignment name expr) = do
+  exprVal <- evaluate expr
+  assignVar name exprVal
+
+
 
 -- Utility functions
 isTruthy :: RuntimeValue -> Bool
@@ -105,8 +119,28 @@ ensureBothNumber op _ _ = throwError $ ArgumentError ("Both arguments to " ++ sh
 
 stringify :: RuntimeValue -> String
 stringify (String str) = str
-stringify Null = "Nil"
+stringify Null = "nil"
 stringify (Boolean b) = show b
 stringify (Number num) = fixedNum
   where fixedNum = if take 2 (reverse shownNum) == "0." then init . init $ shownNum else shownNum
         shownNum = show num
+
+-- Environment related functions
+defineVar :: String -> RuntimeValue -> Interpreter ()
+defineVar name value = do
+  oldBindings <- gets bindings
+  modify' $ \s -> s { bindings = M.insert name value oldBindings }
+
+getVar :: String -> Interpreter RuntimeValue
+getVar name = do
+  currentBindings <- gets bindings
+  case M.lookup name currentBindings of
+    Nothing -> throwError . RuntimeError $ "Undefined variable: '" ++ name ++ "'."
+    Just val -> return val
+
+assignVar :: String -> RuntimeValue -> Interpreter RuntimeValue
+assignVar name val = do
+  currentBindings <- gets bindings
+  case M.lookup name currentBindings of
+    Nothing -> throwError . RuntimeError $ "Undefined variable: '" ++ name ++ "'."
+    Just _ -> (modify' $ \s -> s { bindings = M.insert name val currentBindings }) >> return val
