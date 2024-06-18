@@ -58,11 +58,16 @@ data Expression = Grouping Expression
                 | Unary UnaryOperation Expression
                 | Binary BinaryOperation Expression Expression
                 | Literal LiteralContents
+                | Variable String
                 deriving (Show,Eq)
 
 data Statement = ExprStatement Expression
                | PrintStatement Expression
                deriving (Show,Eq)
+
+data Declaration = VariableDeclaration String (Maybe Expression)
+                 | StatementDeclaration Statement
+                 deriving (Show,Eq)
 
 data RuntimeValue = Number Double
                   | String String
