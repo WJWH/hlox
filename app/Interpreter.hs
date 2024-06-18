@@ -15,6 +15,7 @@ data InterpreterState = InterpreterState {  } deriving (Show,Eq)
 data InterpreterError = ArgumentError { description :: String }
                       deriving (Show,Eq)
 
+newInterpreterState :: InterpreterState
 newInterpreterState = InterpreterState
 
 -- and then:
@@ -23,7 +24,7 @@ runInterpreter st i = runStateT (runExceptT i) st
 
 interpret :: Expression -> IO ()
 interpret expr = do
-  (result, finalState) <- runInterpreter newInterpreterState (evaluate expr)
+  (result, _finalState) <- runInterpreter newInterpreterState (evaluate expr)
   either (\err -> print err) (\res -> print res) result
 
 evaluate :: Expression -> Interpreter RuntimeValue
@@ -90,5 +91,5 @@ numVal _ = error "Unreachable, tried to call numVal on non-number runtime value"
 
 -- Will throw an exception unless both values are Numbers
 ensureBothNumber :: BinaryOperation -> RuntimeValue -> RuntimeValue -> Interpreter ()
-ensureBothNumber op (Number _) (Number _) = return ()
+ensureBothNumber _ (Number _) (Number _) = return ()
 ensureBothNumber op _ _ = throwError $ ArgumentError ("Both arguments to " ++ show op ++ " must be Numbers")

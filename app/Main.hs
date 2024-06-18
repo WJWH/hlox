@@ -5,7 +5,7 @@ import Data.IORef
 import System.Environment
 import System.Exit
 import System.IO
-import Text.Parsec
+import Text.Parsec hiding (tokens)
 
 import Scanner
 import Parser
