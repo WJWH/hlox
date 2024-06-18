@@ -125,7 +125,7 @@ printStatement :: TokenParser Statement
 printStatement = do
   matchToken PRINT
   expr <- expression
-  matchToken SEMICOLON
+  matchToken SEMICOLON <?> "semicolon at end of print statement"
   return $ PrintStatement expr
 
 expressionStatement :: TokenParser Statement
