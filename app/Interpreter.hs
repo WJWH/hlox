@@ -25,7 +25,7 @@ runInterpreter st i = runStateT (runExceptT i) st
 interpret :: [Statement] -> IO ()
 interpret stmts = do
   (result, _finalState) <- runInterpreter newInterpreterState (executeMany stmts)
-  either (\err -> print err) (\res -> print res) result
+  either (\err -> print err) (\_res -> return ()) result
 
 executeMany :: [Statement] -> Interpreter ()
 executeMany stmts = sequence_ $ map execute stmts
@@ -34,7 +34,7 @@ execute :: Statement -> Interpreter ()
 execute (ExprStatement expr) = evaluate expr >> return ()
 execute (PrintStatement expr) = do
   exprVal <- evaluate expr
-  liftIO . print $ stringify exprVal
+  liftIO . putStrLn $ stringify exprVal
 
 evaluate :: Expression -> Interpreter RuntimeValue
 evaluate (Literal (NumberLit num)) = return $ Number num
@@ -104,7 +104,9 @@ ensureBothNumber _ (Number _) (Number _) = return ()
 ensureBothNumber op _ _ = throwError $ ArgumentError ("Both arguments to " ++ show op ++ " must be Numbers")
 
 stringify :: RuntimeValue -> String
-stringify (Number num) = show num
 stringify (String str) = str
 stringify Null = "Nil"
 stringify (Boolean b) = show b
+stringify (Number num) = fixedNum
+  where fixedNum = if take 2 (reverse shownNum) == "0." then init . init $ shownNum else shownNum
+        shownNum = show num
