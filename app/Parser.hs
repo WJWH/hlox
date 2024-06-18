@@ -102,6 +102,10 @@ unary = do
   prim <- primary
   return $ foldUnaryOps prim ops
 
+primary :: TokenParser Expression
+primary = literal <|> grouping
+
+-- some utility functions to handle expressions with multiple operators like 1+2+3+4 and !!abc
 foldBinaryOps :: Expression -> [(BinaryOperation, Expression)] -> Expression
 foldBinaryOps first [] = first
 foldBinaryOps first ((op,expr):xs) = foldBinaryOps (Binary op first expr) xs
@@ -117,5 +121,20 @@ comparison = binaryGrammarRule term comparisonOperator
 term = binaryGrammarRule factor addSubtractOperator
 factor = binaryGrammarRule unary divideMultiplyOperator
 
-primary :: TokenParser Expression
-primary = literal <|> grouping
+printStatement :: TokenParser Statement
+printStatement = do
+  matchToken PRINT
+  expr <- expression
+  matchToken SEMICOLON
+  return $ PrintStatement expr
+
+expressionStatement :: TokenParser Statement
+expressionStatement = do
+  expr <- expression
+  matchToken SEMICOLON
+  return $ ExprStatement expr
+
+statement = printStatement <|> expressionStatement
+
+statements :: TokenParser [Statement]
+statements = many statement
