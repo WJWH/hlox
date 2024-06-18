@@ -60,6 +60,10 @@ data Expression = Grouping Expression
                 | Literal LiteralContents
                 deriving (Show,Eq)
 
+data Statement = ExprStatement Expression
+               | PrintStatement Expression
+               deriving (Show,Eq)
+
 data RuntimeValue = Number Double
                   | String String
                   | Boolean Bool
