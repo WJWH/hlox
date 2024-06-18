@@ -107,6 +107,15 @@ unary = do
   prim <- primary
   return $ foldUnaryOps prim ops
 
+assignment :: TokenParser Expression
+assignment = do
+  expr <- equality
+  matchToken EQUAL
+  value <- expression
+  case expr of
+    Variable str -> return $ Assignment str value
+    _ -> unexpected "Invalid assignment target" -- needs better reporting?
+
 primary :: TokenParser Expression
 primary = literal <|> identifier <|> grouping
 
@@ -120,7 +129,7 @@ foldUnaryOps prim [] = prim
 -- note this should go "inside out" while the binary one goes the other way
 foldUnaryOps prim (op:ops) = Unary op (foldUnaryOps prim ops)
 
-expression = equality
+expression = try assignment <|> equality
 equality = binaryGrammarRule comparison equalityOperator
 comparison = binaryGrammarRule term comparisonOperator
 term = binaryGrammarRule factor addSubtractOperator
@@ -148,7 +157,7 @@ varName _ = error "Unreachable, tried to call numVal on non-number runtime value
 varDeclaration :: TokenParser Statement
 varDeclaration = do
   matchToken VAR
-  name <- identifier
+  name <- identifier <?> "variable name"
   initializer <- option Nothing $ do
     matchToken EQUAL
     expr <- expression
