@@ -1,5 +1,6 @@
 module Interpreter where
 
+import Control.Monad
 import Control.Monad.Except
 import Control.Monad.State
 
@@ -26,6 +27,15 @@ interpret :: Expression -> IO ()
 interpret expr = do
   (result, _finalState) <- runInterpreter newInterpreterState (evaluate expr)
   either (\err -> print err) (\res -> print res) result
+
+executeMany :: [Statement] -> Interpreter ()
+executeMany stmts = sequence_ $ map execute stmts
+
+execute :: Statement -> Interpreter ()
+execute (ExprStatement expr) = evaluate expr >> return ()
+execute (PrintStatement expr) = do
+  exprVal <- evaluate expr
+  liftIO . print $ stringify exprVal
 
 evaluate :: Expression -> Interpreter RuntimeValue
 evaluate (Literal (NumberLit num)) = return $ Number num
@@ -93,3 +103,9 @@ numVal _ = error "Unreachable, tried to call numVal on non-number runtime value"
 ensureBothNumber :: BinaryOperation -> RuntimeValue -> RuntimeValue -> Interpreter ()
 ensureBothNumber _ (Number _) (Number _) = return ()
 ensureBothNumber op _ _ = throwError $ ArgumentError ("Both arguments to " ++ show op ++ " must be Numbers")
+
+stringify :: RuntimeValue -> String
+stringify (Number num) = show num
+stringify (String str) = str
+stringify Null = "Nil"
+stringify (Boolean b) = show b
