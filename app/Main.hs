@@ -9,6 +9,7 @@ import Text.Parsec hiding (tokens)
 import Scanner
 import Parser
 import Interpreter
+import Types
 
 data InterpreterContext = Context { hadError :: Bool, interpreterState :: InterpreterState } deriving (Eq) -- for now, to make it compile
 instance Show InterpreterContext where

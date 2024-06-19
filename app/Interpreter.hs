@@ -10,7 +10,7 @@ import Environment
 
 
 newInterpreterState :: InterpreterState
-newInterpreterState = InterpreterState (newEnv)
+newInterpreterState = InterpreterState (mkRootEnv)
 
 -- and then:
 runInterpreter :: InterpreterState -> Interpreter a -> IO (Either InterpreterError a, InterpreterState)
