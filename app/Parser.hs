@@ -142,13 +142,18 @@ printStatement = do
   matchToken SEMICOLON <?> "semicolon at end of print statement"
   return $ PrintStatement expr
 
+blockStatement :: TokenParser Statement
+blockStatement = do
+  stmts <- between (matchToken LEFT_BRACE) (matchToken RIGHT_BRACE) (many declaration)
+  return $ Block stmts
+
 expressionStatement :: TokenParser Statement
 expressionStatement = do
   expr <- expression
   matchToken SEMICOLON
   return $ ExprStatement expr
 
-statement = printStatement <|> expressionStatement
+statement = printStatement <|> blockStatement <|> expressionStatement
 
 varName :: Expression -> String
 varName (Variable num) = num
