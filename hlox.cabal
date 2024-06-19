@@ -62,7 +62,8 @@ executable hlox
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules:    Interpreter,
+    other-modules:    Environment,
+                      Interpreter,
                       Parser,
                       Scanner,
                       Types
