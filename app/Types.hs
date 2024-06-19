@@ -71,6 +71,7 @@ data Expression = Grouping Expression
 data Statement = ExprStatement Expression
                | PrintStatement Expression
                | VariableDeclaration String (Maybe Expression)
+               | Block [Statement]
                deriving (Show,Eq)
 
 -- Types for the interpreter
