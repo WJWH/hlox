@@ -1,5 +1,10 @@
 module Types where
 
+import Control.Monad.Except
+import Control.Monad.State
+import qualified Data.Map as M
+
+-- Tokeniser related types
 data TokenType = LEFT_PAREN -- single character tokens
                | RIGHT_PAREN
                | LEFT_BRACE
@@ -44,6 +49,7 @@ data TokenType = LEFT_PAREN -- single character tokens
 
 data Token = Token { tokenType :: TokenType, lexeme :: String, line :: Int } deriving (Show,Eq)
 
+-- Parser related types
 data UnaryOperation = Negate | Bang deriving (Show,Eq)
 data BinaryOperation = DoubleEqual | NotEqual | LessThan | LessEqualThan | GreaterThan | GreaterEqualThan
                      | Add | Subtract | Multiply | Divide deriving (Show,Eq)
@@ -67,8 +73,21 @@ data Statement = ExprStatement Expression
                | VariableDeclaration String (Maybe Expression)
                deriving (Show,Eq)
 
+-- Types for the interpreter
 data RuntimeValue = Number Double
                   | String String
                   | Boolean Bool
                   | Null
                   deriving (Show,Eq)
+
+-- Inspired by https://github.com/ccntrq/loxomotive/blob/master/src/Loxomotive/Interpreter.hs,
+-- the core interpreter type is an ExceptT StateT IO value:
+-- - ExceptT so that we can throw exceptions from anywhere without having to wrap/unwrap Eithers all the time
+-- - StateT to keep state about variable bindings etc
+-- - IO as base monad is required because the PRINT method is baked right into the language
+type Interpreter = ExceptT InterpreterError (StateT InterpreterState IO)
+data Env = Env { parent :: Maybe Env, bindings :: M.Map String RuntimeValue } deriving (Show,Eq)
+data InterpreterState = InterpreterState { env :: Env } deriving (Show,Eq)
+data InterpreterError = ArgumentError { description :: String }
+                      | RuntimeError { description :: String }
+                      deriving (Show,Eq)

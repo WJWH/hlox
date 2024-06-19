@@ -5,20 +5,12 @@ import Control.Monad.State
 import qualified Data.Map as M
 
 import Types
+import Environment
 
--- Inspired by https://github.com/ccntrq/loxomotive/blob/master/src/Loxomotive/Interpreter.hs,
--- the core interpreter type is an ExceptT StateT IO value:
--- - ExceptT so that we can throw exceptions from anywhere without having to wrap/unwrap Eithers all the time
--- - StateT to keep state about variable bindings etc
--- - IO as base monad is required because the PRINT method is baked right into the language
-type Interpreter = ExceptT InterpreterError (StateT InterpreterState IO)
-data InterpreterState = InterpreterState { bindings :: M.Map String RuntimeValue } deriving (Show,Eq)
-data InterpreterError = ArgumentError { description :: String }
-                      | RuntimeError { description :: String }
-                      deriving (Show,Eq)
+
 
 newInterpreterState :: InterpreterState
-newInterpreterState = InterpreterState (M.empty)
+newInterpreterState = InterpreterState (newEnv)
 
 -- and then:
 runInterpreter :: InterpreterState -> Interpreter a -> IO (Either InterpreterError a, InterpreterState)
@@ -125,22 +117,3 @@ stringify (Number num) = fixedNum
   where fixedNum = if take 2 (reverse shownNum) == "0." then init . init $ shownNum else shownNum
         shownNum = show num
 
--- Environment related functions
-defineVar :: String -> RuntimeValue -> Interpreter ()
-defineVar name value = do
-  oldBindings <- gets bindings
-  modify' $ \s -> s { bindings = M.insert name value oldBindings }
-
-getVar :: String -> Interpreter RuntimeValue
-getVar name = do
-  currentBindings <- gets bindings
-  case M.lookup name currentBindings of
-    Nothing -> throwError . RuntimeError $ "Undefined variable: '" ++ name ++ "'."
-    Just val -> return val
-
-assignVar :: String -> RuntimeValue -> Interpreter RuntimeValue
-assignVar name val = do
-  currentBindings <- gets bindings
-  case M.lookup name currentBindings of
-    Nothing -> throwError . RuntimeError $ "Undefined variable: '" ++ name ++ "'."
-    Just _ -> (modify' $ \s -> s { bindings = M.insert name val currentBindings }) >> return val
