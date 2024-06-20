@@ -189,7 +189,7 @@ ifStatement = do
 
 whileStatement :: TokenParser Statement
 whileStatement = do
-  matchToken IF
+  matchToken WHILE
   matchToken LEFT_PAREN <?> "'(' after 'while'."
   condition <- expression
   matchToken RIGHT_PAREN <?> "')' after if condition."
