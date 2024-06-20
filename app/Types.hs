@@ -52,7 +52,7 @@ data Token = Token { tokenType :: TokenType, lexeme :: String, line :: Int } der
 -- Parser related types
 data UnaryOperation = Negate | Bang deriving (Show,Eq)
 data BinaryOperation = DoubleEqual | NotEqual | LessThan | LessEqualThan | GreaterThan | GreaterEqualThan
-                     | Add | Subtract | Multiply | Divide deriving (Show,Eq)
+                     | Add | Subtract | Multiply | Divide | And | Or deriving (Show,Eq)
 data LiteralContents = NumberLit Double
                      | StringLit String
                      | TrueLit
