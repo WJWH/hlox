@@ -85,12 +85,12 @@ divideMultiplyOperator = do
     SLASH -> Divide
     _ -> error "Unreachable"
 
-orOperator :: TokenParser BinaryOperation
+orOperator :: TokenParser LogicalOperation
 orOperator = do
   matchToken OR
   return Or
 
-andOperator :: TokenParser BinaryOperation
+andOperator :: TokenParser LogicalOperation
 andOperator = do
   matchToken AND
   return And
@@ -104,6 +104,7 @@ unaryOperator = do
     _ -> error "Unreachable"
 
 -- they all look the same anyway, only separated because of operator precedence
+binaryGrammarRule :: TokenParser Expression -> TokenParser BinaryOperation -> TokenParser Expression
 binaryGrammarRule element operators = do
   firstElement <- element
   nexts <- many $ do
@@ -111,6 +112,16 @@ binaryGrammarRule element operators = do
     nextElement <- element
     return (op,nextElement)
   return $ foldBinaryOps firstElement nexts
+
+-- they all look the same anyway, only separated because of operator precedence
+logicalGrammarRule :: TokenParser Expression -> TokenParser LogicalOperation -> TokenParser Expression
+logicalGrammarRule element operators = do
+  firstElement <- element
+  nexts <- many $ do
+    op <- operators
+    nextElement <- element
+    return (op,nextElement)
+  return $ foldLogicalOps firstElement nexts
 
 unary = do
   ops <- many unaryOperator
@@ -134,14 +145,18 @@ foldBinaryOps :: Expression -> [(BinaryOperation, Expression)] -> Expression
 foldBinaryOps first [] = first
 foldBinaryOps first ((op,expr):xs) = foldBinaryOps (Binary op first expr) xs
 
+foldLogicalOps :: Expression -> [(LogicalOperation, Expression)] -> Expression
+foldLogicalOps first [] = first
+foldLogicalOps first ((op,expr):xs) = foldLogicalOps (Logical op first expr) xs
+
 foldUnaryOps :: Expression -> [UnaryOperation] -> Expression
 foldUnaryOps prim [] = prim
 -- note this should go "inside out" while the binary one goes the other way
 foldUnaryOps prim (op:ops) = Unary op (foldUnaryOps prim ops)
 
 expression = try assignment <|> logicOr
-logicOr = binaryGrammarRule logicAnd orOperator
-logicAnd = binaryGrammarRule equality andOperator
+logicOr = logicalGrammarRule logicAnd orOperator
+logicAnd = logicalGrammarRule equality andOperator
 equality = binaryGrammarRule comparison equalityOperator
 comparison = binaryGrammarRule term comparisonOperator
 term = binaryGrammarRule factor addSubtractOperator
