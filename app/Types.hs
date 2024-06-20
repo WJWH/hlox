@@ -52,7 +52,8 @@ data Token = Token { tokenType :: TokenType, lexeme :: String, line :: Int } der
 -- Parser related types
 data UnaryOperation = Negate | Bang deriving (Show,Eq)
 data BinaryOperation = DoubleEqual | NotEqual | LessThan | LessEqualThan | GreaterThan | GreaterEqualThan
-                     | Add | Subtract | Multiply | Divide | And | Or deriving (Show,Eq)
+                     | Add | Subtract | Multiply | Divide deriving (Show,Eq)
+data LogicalOperation = And | Or deriving (Show,Eq)
 data LiteralContents = NumberLit Double
                      | StringLit String
                      | TrueLit
@@ -66,6 +67,7 @@ data Expression = Grouping Expression
                 | Literal LiteralContents
                 | Variable String
                 | Assignment String Expression
+                | Logical LogicalOperation Expression Expression
                 deriving (Show,Eq)
 
 data Statement = ExprStatement Expression
