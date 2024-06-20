@@ -1,5 +1,6 @@
 module Interpreter where
 
+import Control.Monad
 import Control.Monad.Except
 import Control.Monad.State
 import qualified Data.Map as M
@@ -61,7 +62,7 @@ execute (IfStatement condition thenBranch elseBranch) = do
       Just stmt -> execute stmt
 execute stmt@(WhileStatement condition body) = do
   condVal <- evaluate condition
-  if isTruthy condVal then execute body >> execute stmt else return () -- yay tail call optimization
+  when (isTruthy condVal) (execute body >> execute stmt) -- yay tail call optimization
 
 evaluate :: Expression -> Interpreter RuntimeValue
 evaluate (Literal (NumberLit num)) = return $ Number num
