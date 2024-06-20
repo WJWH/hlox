@@ -85,6 +85,16 @@ divideMultiplyOperator = do
     SLASH -> Divide
     _ -> error "Unreachable"
 
+orOperator :: TokenParser BinaryOperation
+orOperator = do
+  matchToken OR
+  return Or
+
+andOperator :: TokenParser BinaryOperation
+andOperator = do
+  matchToken AND
+  return And
+
 unaryOperator :: TokenParser UnaryOperation
 unaryOperator = do
   tok <- choice [matchToken MINUS, matchToken BANG]
@@ -129,7 +139,9 @@ foldUnaryOps prim [] = prim
 -- note this should go "inside out" while the binary one goes the other way
 foldUnaryOps prim (op:ops) = Unary op (foldUnaryOps prim ops)
 
-expression = try assignment <|> equality
+expression = try assignment <|> logicOr
+logicOr = binaryGrammarRule logicAnd orOperator
+logicAnd = binaryGrammarRule equality andOperator
 equality = binaryGrammarRule comparison equalityOperator
 comparison = binaryGrammarRule term comparisonOperator
 term = binaryGrammarRule factor addSubtractOperator
@@ -147,13 +159,26 @@ blockStatement = do
   stmts <- between (matchToken LEFT_BRACE) (matchToken RIGHT_BRACE) (many declaration)
   return $ Block stmts
 
+ifStatement :: TokenParser Statement
+ifStatement = do
+  matchToken IF
+  matchToken LEFT_PAREN <?> "'(' after 'if'."
+  condition <- expression
+  matchToken RIGHT_PAREN <?> "')' after if condition."
+  thenBranch <- statement
+  elseBranch <- option Nothing $ do
+    matchToken ELSE
+    stmt <- statement
+    return $ Just stmt
+  return $ IfStatement condition thenBranch elseBranch
+
 expressionStatement :: TokenParser Statement
 expressionStatement = do
   expr <- expression
   matchToken SEMICOLON
   return $ ExprStatement expr
 
-statement = printStatement <|> blockStatement <|> expressionStatement
+statement = printStatement <|> blockStatement <|> ifStatement <|> expressionStatement
 
 varName :: Expression -> String
 varName (Variable num) = num
