@@ -3,6 +3,7 @@ module Interpreter where
 import Control.Monad.Except
 import Control.Monad.State
 import qualified Data.Map as M
+import Data.Maybe
 
 import Types
 import Environment
@@ -35,6 +36,23 @@ execute (VariableDeclaration varName maybeExpr) = do
     Just expr -> do
       exprVal <- evaluate expr
       defineVar varName exprVal
+execute (Block stmts) = do
+  currentState <- get
+  -- the interpreter state for the block is the same as for the parent scope, but with a fresh child env
+  let blockState = currentState { env = mkChildEnv (env currentState) }
+  -- run all the statements with the new state. If there's an error, just reraise it
+  -- as no state has been changed yet. If there is no error, we recover the parent env
+  -- from the returned state as some of the variables in the outer scopes may have been
+  -- assigned to.
+  (result, finalState) <- liftIO $ runInterpreter blockState (executeMany stmts)
+  either (\err -> throwError err)
+         (\res -> do
+                    let finalEnv = env finalState
+                    -- fromJust is safe here because it is guaranteed that there is a parent env
+                    put $ currentState { env = fromJust $ parent finalEnv }
+         )
+         result
+
 
 evaluate :: Expression -> Interpreter RuntimeValue
 evaluate (Literal (NumberLit num)) = return $ Number num
