@@ -115,8 +115,11 @@ evaluate (Variable name) = getVar name
 evaluate (Assignment name expr) = do
   exprVal <- evaluate expr
   assignVar name exprVal
-
-
+evaluate (Logical op left right) = do
+  leftVal <- evaluate left
+  case op of
+    Or -> if isTruthy leftVal then return leftVal else evaluate right
+    And -> if not . isTruthy $ leftVal then return leftVal else evaluate right
 
 -- Utility functions
 isTruthy :: RuntimeValue -> Bool
