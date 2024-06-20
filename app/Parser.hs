@@ -187,13 +187,22 @@ ifStatement = do
     return $ Just stmt
   return $ IfStatement condition thenBranch elseBranch
 
+whileStatement :: TokenParser Statement
+whileStatement = do
+  matchToken IF
+  matchToken LEFT_PAREN <?> "'(' after 'while'."
+  condition <- expression
+  matchToken RIGHT_PAREN <?> "')' after if condition."
+  body <- statement
+  return $ WhileStatement condition body
+
 expressionStatement :: TokenParser Statement
 expressionStatement = do
   expr <- expression
   matchToken SEMICOLON
   return $ ExprStatement expr
 
-statement = printStatement <|> blockStatement <|> ifStatement <|> expressionStatement
+statement = printStatement <|> blockStatement <|> ifStatement <|> whileStatement <|> expressionStatement
 
 varName :: Expression -> String
 varName (Variable num) = num
