@@ -59,6 +59,9 @@ execute (IfStatement condition thenBranch elseBranch) = do
     else case elseBranch of
       Nothing -> return ()
       Just stmt -> execute stmt
+execute stmt@(WhileStatement condition body) = do
+  condVal <- evaluate condition
+  if isTruthy condVal then execute body >> execute stmt else return () -- yay tail call optimization
 
 evaluate :: Expression -> Interpreter RuntimeValue
 evaluate (Literal (NumberLit num)) = return $ Number num
