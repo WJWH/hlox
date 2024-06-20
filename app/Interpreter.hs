@@ -63,6 +63,7 @@ execute (IfStatement condition thenBranch elseBranch) = do
 execute stmt@(WhileStatement condition body) = do
   condVal <- evaluate condition
   when (isTruthy condVal) (execute body >> execute stmt) -- yay tail call optimization
+execute EmptyStatement = return () -- basically a NOP, only used for for loops
 
 evaluate :: Expression -> Interpreter RuntimeValue
 evaluate (Literal (NumberLit num)) = return $ Number num

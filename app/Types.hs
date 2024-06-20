@@ -76,6 +76,7 @@ data Statement = ExprStatement Expression
                | Block [Statement]
                | IfStatement Expression Statement (Maybe Statement)
                | WhileStatement Expression Statement
+               | EmptyStatement
                deriving (Show,Eq)
 
 -- Types for the interpreter
