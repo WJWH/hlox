@@ -52,7 +52,13 @@ execute (Block stmts) = do
                     put $ currentState { env = fromJust $ parent finalEnv }
          )
          result
-
+execute (IfStatement condition thenBranch elseBranch) = do
+  condVal <- evaluate condition
+  if isTruthy condVal
+    then execute thenBranch
+    else case elseBranch of
+      Nothing -> return ()
+      Just stmt -> execute stmt
 
 evaluate :: Expression -> Interpreter RuntimeValue
 evaluate (Literal (NumberLit num)) = return $ Number num
