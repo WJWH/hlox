@@ -72,6 +72,7 @@ data Statement = ExprStatement Expression
                | PrintStatement Expression
                | VariableDeclaration String (Maybe Expression)
                | Block [Statement]
+               | IfStatement Expression Statement (Maybe Statement)
                deriving (Show,Eq)
 
 -- Types for the interpreter
