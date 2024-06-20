@@ -196,13 +196,37 @@ whileStatement = do
   body <- statement
   return $ WhileStatement condition body
 
+-- for use in for loop definitions only, not allowed in "top level" statements
+-- not techically according to the book but it's my language so I can do what I want
+-- if it makes the parser nicer :)
+emptyStatement :: TokenParser Statement
+emptyStatement = do
+  matchToken SEMICOLON
+  return EmptyStatement
+
+forStatement :: TokenParser Statement
+forStatement = do
+  matchToken FOR
+  matchToken LEFT_PAREN
+  initializer <- varDeclaration <|> expressionStatement <|> emptyStatement
+  condition <- option Nothing (Just <$> expression)
+  matchToken SEMICOLON
+  increment <- option Nothing (Just <$> expression)
+  matchToken RIGHT_PAREN
+  body <- statement
+  -- let's stitch this sucker back up into a while statement:
+  let whileBody = maybe body (\inc -> Block [body, ExprStatement inc]) increment -- the increment, if any, comes after the loop body
+  let whileCondition = maybe (Literal TrueLit) id condition -- if no condition is given, default to True for infinite looping
+  let while = WhileStatement whileCondition whileBody
+  return $ Block [initializer,while]
+
 expressionStatement :: TokenParser Statement
 expressionStatement = do
   expr <- expression
   matchToken SEMICOLON
   return $ ExprStatement expr
 
-statement = printStatement <|> blockStatement <|> ifStatement <|> whileStatement <|> expressionStatement
+statement = printStatement <|> blockStatement <|> ifStatement <|> whileStatement <|> forStatement <|> expressionStatement
 
 varName :: Expression -> String
 varName (Variable num) = num
