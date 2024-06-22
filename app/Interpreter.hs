@@ -12,7 +12,8 @@ import Environment
 
 
 newInterpreterState :: InterpreterState
-newInterpreterState = InterpreterState (mkRootEnv)
+newInterpreterState = InterpreterState globals globals
+  where globals = mkRootEnv
 
 -- and then:
 runInterpreter :: InterpreterState -> Interpreter a -> IO (Either InterpreterError a, InterpreterState)
@@ -125,6 +126,15 @@ evaluate (Logical op left right) = do
   case op of
     Or -> if isTruthy leftVal then return leftVal else evaluate right
     And -> if not . isTruthy $ leftVal then return leftVal else evaluate right
+evaluate (Call callee tok args) = do
+  calleeVal <- evaluate callee
+  argsVals <- mapM evaluate args
+  case calleeVal of
+    _ -> throwError $ RuntimeError "Can only call functions and classes."
+
+call :: RuntimeValue -> [RuntimeValue] -> Interpreter RuntimeValue
+call (Function arity) args = do
+  return $ undefined
 
 -- Utility functions
 isTruthy :: RuntimeValue -> Bool
