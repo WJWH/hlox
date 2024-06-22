@@ -125,8 +125,19 @@ logicalGrammarRule element operators = do
 
 unary = do
   ops <- many unaryOperator
+  expr <- call
+  return $ foldUnaryOps expr ops
+
+call = do
   prim <- primary
-  return $ foldUnaryOps prim ops
+  args <- option Nothing $ do
+    matchToken LEFT_PAREN
+    args <- expression `sepBy` matchToken COMMA
+    endParen <- matchToken RIGHT_PAREN
+    return $ Just (args,endParen)
+  return $ case args of
+    Nothing -> prim
+    Just (args,endParen) -> Call prim endParen args
 
 assignment :: TokenParser Expression
 assignment = do
