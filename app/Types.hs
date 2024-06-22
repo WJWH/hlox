@@ -94,8 +94,10 @@ data RuntimeValue = Number Double
 -- - StateT to keep state about variable bindings etc
 -- - IO as base monad is required because the PRINT method is baked right into the language
 type Interpreter = ExceptT InterpreterError (StateT InterpreterState IO)
-data Env = Env { parent :: Maybe Env, bindings :: M.Map String RuntimeValue } deriving (Show,Eq)
-data InterpreterState = InterpreterState { env :: Env } deriving (Show,Eq)
+data Env = Env { parent :: Maybe Env
+               , bindings :: M.Map String RuntimeValue
+               } deriving (Show,Eq)
+data InterpreterState = InterpreterState { env :: Env, globals :: Env } deriving (Show,Eq)
 data InterpreterError = ArgumentError { description :: String }
                       | RuntimeError { description :: String }
                       deriving (Show,Eq)
