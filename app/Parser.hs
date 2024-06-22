@@ -1,5 +1,6 @@
 module Parser where
 
+import Control.Monad
 import Control.Monad.Identity
 import Text.Parsec
 import Text.Parsec.Pos
@@ -130,14 +131,13 @@ unary = do
 
 call = do
   prim <- primary
-  args <- option Nothing $ do
+  calls <- many $ do
     matchToken LEFT_PAREN
     args <- expression `sepBy` matchToken COMMA -- conveniently also handles case with zero arguments
+    when ((length args) >= 255) $ fail "Can't have more than 255 arguments."
     endParen <- matchToken RIGHT_PAREN
-    return $ Just (args,endParen)
-  return $ case args of
-    Nothing -> prim
-    Just (args,endParen) -> Call prim endParen args
+    return $ (args,endParen)
+  return $ foldCalls prim calls
 
 assignment :: TokenParser Expression
 assignment = do
@@ -161,9 +161,13 @@ foldLogicalOps first [] = first
 foldLogicalOps first ((op,expr):xs) = foldLogicalOps (Logical op first expr) xs
 
 foldUnaryOps :: Expression -> [UnaryOperation] -> Expression
-foldUnaryOps prim [] = prim
+foldUnaryOps callExpr [] = callExpr
 -- note this should go "inside out" while the binary one goes the other way
-foldUnaryOps prim (op:ops) = Unary op (foldUnaryOps prim ops)
+foldUnaryOps callExpr (op:ops) = Unary op (foldUnaryOps callExpr ops)
+
+foldCalls :: Expression -> [([Expression],Token)] -> Expression
+foldCalls callee [] = callee
+foldCalls callee ((args,tok):ops) = foldCalls (Call callee tok args) ops
 
 expression = try assignment <|> logicOr
 logicOr = logicalGrammarRule logicAnd orOperator
