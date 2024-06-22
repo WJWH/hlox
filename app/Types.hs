@@ -68,6 +68,7 @@ data Expression = Grouping Expression
                 | Variable String
                 | Assignment String Expression
                 | Logical LogicalOperation Expression Expression
+                | Call Expression Token [Expression]
                 deriving (Show,Eq)
 
 data Statement = ExprStatement Expression
