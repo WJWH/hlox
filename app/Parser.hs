@@ -132,7 +132,7 @@ call = do
   prim <- primary
   args <- option Nothing $ do
     matchToken LEFT_PAREN
-    args <- expression `sepBy` matchToken COMMA
+    args <- expression `sepBy` matchToken COMMA -- conveniently also handles case with zero arguments
     endParen <- matchToken RIGHT_PAREN
     return $ Just (args,endParen)
   return $ case args of
