@@ -85,6 +85,7 @@ data RuntimeValue = Number Double
                   | String String
                   | Boolean Bool
                   | Null
+                  | Function Int -- arity
                   deriving (Show,Eq)
 
 -- Inspired by https://github.com/ccntrq/loxomotive/blob/master/src/Loxomotive/Interpreter.hs,
