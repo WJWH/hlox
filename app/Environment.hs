@@ -3,10 +3,14 @@ module Environment where
 import Control.Monad.Except
 import Control.Monad.State
 import qualified Data.Map as M
+import Data.Time.Clock
+import Data.Time.Clock.POSIX
 
 import Types
 
-mkRootEnv = Env Nothing M.empty
+mkRootEnv = Env Nothing rootBindings
+  where rootBindings = M.insert "clock" clockFunc M.empty
+        clockFunc = NativeFunction 0 $ Number . realToFrac . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds <$> liftIO getCurrentTime
 
 mkChildEnv parent = Env (Just parent) M.empty
 
