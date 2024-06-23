@@ -86,7 +86,7 @@ data RuntimeValue = Number Double
                   | Boolean Bool
                   | Null
                   | Function Int -- arity
-                  | NativeFunction Int (Interpreter RuntimeValue) -- arity, some code block to run
+                  | NativeFunction Int ([RuntimeValue] -> Interpreter RuntimeValue) -- arity, some code block to run
                   -- deriving (Eq)
 
 instance Show RuntimeValue where

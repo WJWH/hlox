@@ -135,7 +135,7 @@ evaluate (Call callee tok args) = do
 
 call :: RuntimeValue -> [RuntimeValue] -> Interpreter RuntimeValue
 call (NativeFunction arity code) args = do
-  code -- but how about the args?? Will I need a separate one for that?
+  code args -- but how about the args?? Will I need a separate one for that?
   -- idea: all the args they take MUST be RuntimeValues, so perhaps I can make them all
   -- take a single argument of type [RuntimeValue]?
 call (Function arity) args = do
