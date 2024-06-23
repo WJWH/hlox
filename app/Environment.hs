@@ -3,15 +3,17 @@ module Environment where
 import Control.Monad.Except
 import Control.Monad.State
 import qualified Data.Map as M
-import Data.Time.Clock
+import Data.Time.Clock ( nominalDiffTimeToSeconds )
 import Data.Time.Clock.POSIX
 
 import Types
 
+mkRootEnv :: Env
 mkRootEnv = Env Nothing rootBindings
   where rootBindings = M.insert "clock" clockFunc M.empty
-        clockFunc = NativeFunction 0 $ Number . realToFrac . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds <$> liftIO getCurrentTime
+        clockFunc = NativeFunction 0 $ \_ -> Number . realToFrac . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds <$> liftIO getCurrentTime
 
+mkChildEnv :: Env -> Env
 mkChildEnv parent = Env (Just parent) M.empty
 
 -- setting and getting variables
@@ -47,7 +49,7 @@ findVar name (Env parent bindings) = case M.lookup name bindings of
 -- modified env wrapped in Just if it was found and updated.
 setVar :: String -> RuntimeValue -> Env -> Maybe Env
 setVar name val (Env parent bindings) = case M.lookup name bindings of
-  Just oldVal -> Just $ Env parent $ M.insert name val bindings
+  Just _ -> Just $ Env parent $ M.insert name val bindings
   Nothing -> case parent of
     Nothing -> Nothing -- no parent available, so the var to update couldn't be found
     Just p -> case setVar name val p of
