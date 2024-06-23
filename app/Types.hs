@@ -86,7 +86,16 @@ data RuntimeValue = Number Double
                   | Boolean Bool
                   | Null
                   | Function Int -- arity
-                  deriving (Show,Eq)
+                  | NativeFunction Int (Interpreter RuntimeValue) -- arity, some code block to run
+                  -- deriving (Eq)
+
+instance Show RuntimeValue where
+  show (Number num) = show num
+  show (String str) = str
+  show (Boolean b) = show b
+  show Null = "null"
+  show (Function _) = "<user defined function>"
+  show (NativeFunction _ _) = "<native function>"
 
 -- Inspired by https://github.com/ccntrq/loxomotive/blob/master/src/Loxomotive/Interpreter.hs,
 -- the core interpreter type is an ExceptT StateT IO value:
