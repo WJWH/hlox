@@ -1,0 +1,19 @@
+cradle:
+  cabal:
+    - path: "app/Main.hs"
+      component: "hlox:exe:hlox"
+
+    - path: "app/Environment.hs"
+      component: "hlox:exe:hlox"
+
+    - path: "app/Interpreter.hs"
+      component: "hlox:exe:hlox"
+
+    - path: "app/Parser.hs"
+      component: "hlox:exe:hlox"
+
+    - path: "app/Scanner.hs"
+      component: "hlox:exe:hlox"
+
+    - path: "app/Types.hs"
+      component: "hlox:exe:hlox"
