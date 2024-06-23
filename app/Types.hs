@@ -97,6 +97,14 @@ instance Show RuntimeValue where
   show (Function _) = "<user defined function>"
   show (NativeFunction _ _) = "<native function>"
 
+instance Eq RuntimeValue where
+  (==) (Number num1) (Number num2) = num1 == num2
+  (==) (String str1) (String str2) = str1 == str2
+  (==) (Boolean b1) (Boolean b2) = b1 == b2
+  (==) Null Null = True
+  (==) (Function _) (Function _) = False -- functions cannot be equal-ed
+  (==) (NativeFunction _ _) (NativeFunction _ _) = False
+
 -- Inspired by https://github.com/ccntrq/loxomotive/blob/master/src/Loxomotive/Interpreter.hs,
 -- the core interpreter type is an ExceptT StateT IO value:
 -- - ExceptT so that we can throw exceptions from anywhere without having to wrap/unwrap Eithers all the time
