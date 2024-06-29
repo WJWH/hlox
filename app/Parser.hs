@@ -261,8 +261,18 @@ varDeclaration = do
   matchToken SEMICOLON <?> "semicolon at end of variable declaration"
   return $ VariableDeclaration (varName name) initializer
 
+funDeclaration :: TokenParser Statement
+funDeclaration = do
+  matchToken FUN
+  name <- identifier <?> "function name"
+  matchToken LEFT_PAREN
+  args <- identifier `sepBy` matchToken COMMA
+  matchToken RIGHT_PAREN
+  body <- blockStatement
+  return $ FunctionDeclaration (varName name) (map varName args) body
+
 declaration :: TokenParser Statement
-declaration = varDeclaration <|> statement
+declaration = funDeclaration <|> varDeclaration <|> statement
 
 program :: TokenParser [Statement]
 program = do
