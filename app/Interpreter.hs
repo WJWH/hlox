@@ -134,15 +134,35 @@ evaluate (Call callee tok args) = do
   argsVals <- mapM evaluate args
   case calleeVal of
     nf@(NativeFunction _ _) -> call nf argsVals
+    lf@(LoxFunction _ _ _ _) -> call lf argsVals
     _ -> throwError $ RuntimeError "Can only call functions and classes."
 
 call :: RuntimeValue -> [RuntimeValue] -> Interpreter RuntimeValue
-call (NativeFunction arity code) args = do
+call (NativeFunction _arity code) args = do
   code args -- but how about the args?? Will I need a separate one for that?
   -- idea: all the args they take MUST be RuntimeValues, so perhaps I can make them all
   -- take a single argument of type [RuntimeValue]?
-call (Function arity) args = do
-  return $ undefined
+call (LoxFunction arity name argNames body) args = do
+  when (arity /= length args) $ throwError $ RuntimeError ("wrong arity for function " ++ name)
+  currentState <- get
+  -- the interpreter state for the block is the same as for the parent scope, but with a fresh child env
+  let functionState = currentState { env = mkChildEnv (env currentState) }
+  -- run all the statements with the new state. If there's an error, just reraise it
+  -- as no state has been changed yet. If there is no error, we recover the parent env
+  -- from the returned state as some of the variables in the outer scopes may have been
+  -- assigned to.
+  (result, finalState) <- liftIO $ runInterpreter functionState $ do
+    mapM_ (\(argName, a) -> defineVar argName a) (zip argNames args) -- assign the params
+    execute body -- run the body in this new env with the params defined
+  either (\err -> throwError err)
+         (\_res -> do
+                    let finalEnv = env finalState
+                    -- fromJust is safe here because it is guaranteed that there is a parent env
+                    put $ currentState { env = fromJust $ parent finalEnv }
+                    return Null -- until we implement `return` statements, functions always return Null
+         )
+         result
+call _ _ = throwError $ RuntimeError "Called 'call' with non-function argument (should be impossible)"
 
 -- Utility functions
 isTruthy :: RuntimeValue -> Bool
