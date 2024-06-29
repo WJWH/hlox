@@ -22,7 +22,7 @@ type TokenParser a = ParsecT [Token] () Identity a
 
 -- for tokens that have no content
 matchToken :: TokenType -> TokenParser Token
-matchToken toktype = token show (\tok -> (initialPos "borp")) $ \tok -> if tokenType tok == toktype then Just tok else Nothing
+matchToken toktype = token show (\_ -> (initialPos "borp")) $ \tok -> if tokenType tok == toktype then Just tok else Nothing
 
 -- something between parentheses
 grouping :: TokenParser Expression
@@ -124,11 +124,13 @@ logicalGrammarRule element operators = do
     return (op,nextElement)
   return $ foldLogicalOps firstElement nexts
 
+unary :: TokenParser Expression
 unary = do
   ops <- many unaryOperator
   expr <- call
   return $ foldUnaryOps expr ops
 
+call :: TokenParser Expression
 call = do
   prim <- primary
   calls <- many $ do
@@ -241,6 +243,7 @@ expressionStatement = do
   matchToken SEMICOLON
   return $ ExprStatement expr
 
+statement :: TokenParser Statement
 statement = printStatement <|> blockStatement <|> ifStatement <|> whileStatement <|> forStatement <|> expressionStatement
 
 varName :: Expression -> String
@@ -258,10 +261,11 @@ varDeclaration = do
   matchToken SEMICOLON <?> "semicolon at end of variable declaration"
   return $ VariableDeclaration (varName name) initializer
 
+declaration :: TokenParser Statement
 declaration = varDeclaration <|> statement
 
 program :: TokenParser [Statement]
 program = do
   decls <- many declaration
-  matchToken EOF
+  _ <- matchToken EOF
   return decls
