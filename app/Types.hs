@@ -74,6 +74,7 @@ data Expression = Grouping Expression
 data Statement = ExprStatement Expression
                | PrintStatement Expression
                | VariableDeclaration String (Maybe Expression)
+               | FunctionDeclaration String [String] [Statement] -- name, params, body
                | Block [Statement]
                | IfStatement Expression Statement (Maybe Statement)
                | WhileStatement Expression Statement
