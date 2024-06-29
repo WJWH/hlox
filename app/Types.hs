@@ -86,16 +86,15 @@ data RuntimeValue = Number Double
                   | String String
                   | Boolean Bool
                   | Null
-                  | Function Int -- arity
+                  | LoxFunction Int String [String] Statement -- arity, name, arg names, body
                   | NativeFunction Int ([RuntimeValue] -> Interpreter RuntimeValue) -- arity, some code block to run
-                  -- deriving (Eq)
 
 instance Show RuntimeValue where
   show (Number num) = show num
   show (String str) = str
   show (Boolean b) = show b
   show Null = "null"
-  show (Function _) = "<user defined function>"
+  show (LoxFunction _ name _ _) = "<user defined function" ++ name ++ ">"
   show (NativeFunction _ _) = "<native function>"
 
 instance Eq RuntimeValue where
@@ -103,7 +102,7 @@ instance Eq RuntimeValue where
   (==) (String str1) (String str2) = str1 == str2
   (==) (Boolean b1) (Boolean b2) = b1 == b2
   (==) Null Null = True
-  (==) (Function _) (Function _) = False -- functions cannot be equal-ed
+  (==) (LoxFunction _ _ _ _) (LoxFunction _ _ _ _) = False -- functions cannot be equal-ed
   (==) (NativeFunction _ _) (NativeFunction _ _) = False
 
 -- Inspired by https://github.com/ccntrq/loxomotive/blob/master/src/Loxomotive/Interpreter.hs,
