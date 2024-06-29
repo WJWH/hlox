@@ -183,7 +183,8 @@ stringify :: RuntimeValue -> String
 stringify (String str) = str
 stringify Null = "nil"
 stringify (Boolean b) = show b
+stringify (NativeFunction _ _) = "native function"
+stringify (LoxFunction _ name _ _) = "function " ++ name
 stringify (Number num) = fixedNum
   where fixedNum = if take 2 (reverse shownNum) == "0." then init . init $ shownNum else shownNum
         shownNum = show num
-
