@@ -104,6 +104,7 @@ instance Eq RuntimeValue where
   (==) Null Null = True
   (==) (LoxFunction _ _ _ _) (LoxFunction _ _ _ _) = False -- functions cannot be equal-ed
   (==) (NativeFunction _ _) (NativeFunction _ _) = False
+  (==) _ _ = False -- type mismatch
 
 -- Inspired by https://github.com/ccntrq/loxomotive/blob/master/src/Loxomotive/Interpreter.hs,
 -- the core interpreter type is an ExceptT StateT IO value:
