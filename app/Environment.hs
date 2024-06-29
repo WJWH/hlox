@@ -11,7 +11,7 @@ import Types
 mkRootEnv :: Env
 mkRootEnv = Env Nothing rootBindings
   where rootBindings = M.insert "clock" clockFunc M.empty
-        clockFunc = NativeFunction 0 $ \_ -> Number . realToFrac . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds <$> liftIO getCurrentTime
+        clockFunc = NativeFunction 0 "clock" $ \_ -> Number . realToFrac . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds <$> liftIO getCurrentTime
 
 mkChildEnv :: Env -> Env
 mkChildEnv parent = Env (Just parent) M.empty

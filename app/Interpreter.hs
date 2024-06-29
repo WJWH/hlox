@@ -3,7 +3,6 @@ module Interpreter where
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.State
-import qualified Data.Map as M
 import Data.Maybe
 
 import Types
@@ -48,7 +47,7 @@ execute (Block stmts) = do
   -- assigned to.
   (result, finalState) <- liftIO $ runInterpreter blockState (executeMany stmts)
   either (\err -> throwError err)
-         (\res -> do
+         (\_res -> do
                     let finalEnv = env finalState
                     -- fromJust is safe here because it is guaranteed that there is a parent env
                     put $ currentState { env = fromJust $ parent finalEnv }
@@ -129,16 +128,16 @@ evaluate (Logical op left right) = do
   case op of
     Or -> if isTruthy leftVal then return leftVal else evaluate right
     And -> if not . isTruthy $ leftVal then return leftVal else evaluate right
-evaluate (Call callee tok args) = do
+evaluate (Call callee _tok args) = do
   calleeVal <- evaluate callee
   argsVals <- mapM evaluate args
   case calleeVal of
-    nf@(NativeFunction _ _) -> call nf argsVals
+    nf@(NativeFunction _ _ _) -> call nf argsVals
     lf@(LoxFunction _ _ _ _) -> call lf argsVals
     _ -> throwError $ RuntimeError "Can only call functions and classes."
 
 call :: RuntimeValue -> [RuntimeValue] -> Interpreter RuntimeValue
-call (NativeFunction _arity code) args = do
+call (NativeFunction _arity _name code) args = do
   code args -- but how about the args?? Will I need a separate one for that?
   -- idea: all the args they take MUST be RuntimeValues, so perhaps I can make them all
   -- take a single argument of type [RuntimeValue]?
@@ -183,8 +182,8 @@ stringify :: RuntimeValue -> String
 stringify (String str) = str
 stringify Null = "nil"
 stringify (Boolean b) = show b
-stringify (NativeFunction _ _) = "native function"
-stringify (LoxFunction _ name _ _) = "function " ++ name
+stringify (NativeFunction _ name _) = "native function: " ++ name
+stringify (LoxFunction _ name _ _) = "function: " ++ name
 stringify (Number num) = fixedNum
   where fixedNum = if take 2 (reverse shownNum) == "0." then init . init $ shownNum else shownNum
         shownNum = show num
