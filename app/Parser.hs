@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-unused-do-bind #-}
 module Parser where
 
 import Control.Monad
@@ -171,13 +172,22 @@ foldCalls :: Expression -> [([Expression],Token)] -> Expression
 foldCalls callee [] = callee
 foldCalls callee ((args,tok):ops) = foldCalls (Call callee tok args) ops
 
+-- The stack that defines operator precedence
+expression :: TokenParser Expression
 expression = try assignment <|> logicOr
+logicOr :: TokenParser Expression
 logicOr = logicalGrammarRule logicAnd orOperator
+logicAnd :: TokenParser Expression
 logicAnd = logicalGrammarRule equality andOperator
+equality :: TokenParser Expression
 equality = binaryGrammarRule comparison equalityOperator
+comparison :: TokenParser Expression
 comparison = binaryGrammarRule term comparisonOperator
+term :: TokenParser Expression
 term = binaryGrammarRule factor addSubtractOperator
+factor :: TokenParser Expression
 factor = binaryGrammarRule unary divideMultiplyOperator
+
 
 printStatement :: TokenParser Statement
 printStatement = do
