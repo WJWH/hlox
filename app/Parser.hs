@@ -188,6 +188,12 @@ term = binaryGrammarRule factor addSubtractOperator
 factor :: TokenParser Expression
 factor = binaryGrammarRule unary divideMultiplyOperator
 
+returnStatement :: TokenParser Statement
+returnStatement = do
+  matchToken RETURN
+  expr <- expression
+  matchToken SEMICOLON <?> "semicolon at end of return statement"
+  return $ ReturnStatement expr
 
 printStatement :: TokenParser Statement
 printStatement = do
@@ -254,7 +260,7 @@ expressionStatement = do
   return $ ExprStatement expr
 
 statement :: TokenParser Statement
-statement = printStatement <|> blockStatement <|> ifStatement <|> whileStatement <|> forStatement <|> expressionStatement
+statement = returnStatement <|> printStatement <|> blockStatement <|> ifStatement <|> whileStatement <|> forStatement <|> expressionStatement
 
 varName :: Expression -> String
 varName (Variable num) = num
