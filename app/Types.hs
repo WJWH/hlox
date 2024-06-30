@@ -119,4 +119,5 @@ data Env = Env { parent :: Maybe Env
 data InterpreterState = InterpreterState { env :: Env, globals :: Env } deriving (Show,Eq)
 data InterpreterError = ArgumentError { description :: String }
                       | RuntimeError { description :: String }
+                      | ReturnValue { value :: RuntimeValue } -- using this to implement `return` statements
                       deriving (Show,Eq)
