@@ -67,6 +67,9 @@ execute EmptyStatement = return () -- basically a NOP, only used for for loops
 execute (FunctionDeclaration name args body) = do
   let fn = LoxFunction (length args) name args body
   defineVar name fn
+execute (ReturnStatement expr) = do
+  exprVal <- evaluate expr
+  throwError $ ReturnValue exprVal
 
 evaluate :: Expression -> Interpreter RuntimeValue
 evaluate (Literal (NumberLit num)) = return $ Number num
@@ -153,12 +156,18 @@ call (LoxFunction arity name argNames body) args = do
   (result, finalState) <- liftIO $ runInterpreter functionState $ do
     mapM_ (\(argName, a) -> defineVar argName a) (zip argNames args) -- assign the params
     execute body -- run the body in this new env with the params defined
-  either (\err -> throwError err)
+  either (\err -> case err of
+                    ReturnValue val -> return val
+                    _ -> throwError err
+         )
          (\_res -> do
                     let finalEnv = env finalState
                     -- fromJust is safe here because it is guaranteed that there is a parent env
                     put $ currentState { env = fromJust $ parent finalEnv }
-                    return Null -- until we implement `return` statements, functions always return Null
+                    -- the case where a value is returned was handled above in the error branch, but
+                    -- if the function completed without any return value we still have to return
+                    -- something, in this case Null
+                    return Null
          )
          result
 call _ _ = throwError $ RuntimeError "Called 'call' with non-function argument (should be impossible)"
