@@ -87,7 +87,7 @@ data RuntimeValue = Number Double
                   | String String
                   | Boolean Bool
                   | Null
-                  | LoxFunction Int String [String] Statement -- arity, name, arg names, body
+                  | LoxFunction Int String [String] Statement Env -- arity, name, arg names, body, closure
                   | NativeFunction Int String ([RuntimeValue] -> Interpreter RuntimeValue) -- arity, name, some code block to run
 
 instance Show RuntimeValue where
@@ -95,7 +95,7 @@ instance Show RuntimeValue where
   show (String str) = str
   show (Boolean b) = show b
   show Null = "null"
-  show (LoxFunction _ name _ _) = "<user defined function" ++ name ++ ">"
+  show (LoxFunction _ name _ _ _) = "<user defined function" ++ name ++ ">"
   show (NativeFunction _ name _) = "<native function" ++ name ++ ">"
 
 instance Eq RuntimeValue where
@@ -103,7 +103,7 @@ instance Eq RuntimeValue where
   (==) (String str1) (String str2) = str1 == str2
   (==) (Boolean b1) (Boolean b2) = b1 == b2
   (==) Null Null = True
-  (==) (LoxFunction _ _ _ _) (LoxFunction _ _ _ _) = False -- functions cannot be equal-ed
+  (==) (LoxFunction _ _ _ _ _) (LoxFunction _ _ _ _ _) = False -- functions cannot be equal-ed
   (==) (NativeFunction _ _ _) (NativeFunction _ _ _) = False
   (==) _ _ = False -- type mismatch
 

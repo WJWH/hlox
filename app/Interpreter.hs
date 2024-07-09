@@ -136,7 +136,7 @@ evaluate (Call callee _tok args) = do
   argsVals <- mapM evaluate args
   case calleeVal of
     nf@(NativeFunction _ _ _) -> call nf argsVals
-    lf@(LoxFunction _ _ _ _) -> call lf argsVals
+    lf@(LoxFunction _ _ _ _ _) -> call lf argsVals
     _ -> throwError $ RuntimeError "Can only call functions and classes."
 
 call :: RuntimeValue -> [RuntimeValue] -> Interpreter RuntimeValue
@@ -144,7 +144,7 @@ call (NativeFunction _arity _name code) args = do
   code args -- but how about the args?? Will I need a separate one for that?
   -- idea: all the args they take MUST be RuntimeValues, so perhaps I can make them all
   -- take a single argument of type [RuntimeValue]?
-call (LoxFunction arity name argNames body) args = do
+call (LoxFunction arity name argNames body closure) args = do
   when (arity /= length args) $ throwError $ RuntimeError ("wrong arity for function " ++ name)
   currentState <- get
   -- the interpreter state for the block is the same as for the parent scope, but with a fresh child env
@@ -192,7 +192,7 @@ stringify (String str) = str
 stringify Null = "nil"
 stringify (Boolean b) = show b
 stringify (NativeFunction _ name _) = "native function: " ++ name
-stringify (LoxFunction _ name _ _) = "function: " ++ name
+stringify (LoxFunction _ name _ _ _) = "function: " ++ name
 stringify (Number num) = fixedNum
   where fixedNum = if take 2 (reverse shownNum) == "0." then init . init $ shownNum else shownNum
         shownNum = show num
