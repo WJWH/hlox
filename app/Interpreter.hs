@@ -65,7 +65,8 @@ execute stmt@(WhileStatement condition body) = do
   when (isTruthy condVal) (execute body >> execute stmt) -- yay tail call optimization
 execute EmptyStatement = return () -- basically a NOP, only used for for loops
 execute (FunctionDeclaration name args body) = do
-  let fn = LoxFunction (length args) name args body
+  closure <- gets env
+  let fn = LoxFunction (length args) name args body closure
   defineVar name fn
 execute (ReturnStatement expr) = do
   exprVal <- evaluate expr
@@ -148,7 +149,11 @@ call (LoxFunction arity name argNames body closure) args = do
   when (arity /= length args) $ throwError $ RuntimeError ("wrong arity for function " ++ name)
   currentState <- get
   -- the interpreter state for the block is the same as for the parent scope, but with a fresh child env
-  let functionState = currentState { env = mkChildEnv (env currentState) }
+  -- that has the closure of the function as its parent
+  let functionState = currentState { env = mkChildEnv closure } -- from  the book but doesn't work??
+  -- I think it is because you actually do need mutable references, otherwise the changes to one "global"
+  -- parent scope won't show up in the other :|
+  -- let functionState = currentState { env = mkChildEnv (env currentState) }
   -- run all the statements with the new state. If there's an error, just reraise it
   -- as no state has been changed yet. If there is no error, we recover the parent env
   -- from the returned state as some of the variables in the outer scopes may have been
