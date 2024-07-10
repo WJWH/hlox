@@ -2,6 +2,7 @@ module Types where
 
 import Control.Monad.Except
 import Control.Monad.State
+import Data.IORef
 import qualified Data.Map as M
 
 -- Tokeniser related types
@@ -114,9 +115,9 @@ instance Eq RuntimeValue where
 -- - IO as base monad is required because the PRINT method is baked right into the language
 type Interpreter = ExceptT InterpreterError (StateT InterpreterState IO)
 data Env = Env { parent :: Maybe Env
-               , bindings :: M.Map String RuntimeValue
-               } deriving (Show,Eq)
-data InterpreterState = InterpreterState { env :: Env, globals :: Env } deriving (Show,Eq)
+               , bindings :: IORef (M.Map String RuntimeValue)
+               } deriving (Eq)
+data InterpreterState = InterpreterState { env :: Env, globals :: Env } deriving (Eq)
 data InterpreterError = ArgumentError { description :: String }
                       | RuntimeError { description :: String }
                       | ReturnValue { value :: RuntimeValue } -- using this to implement `return` statements
