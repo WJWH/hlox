@@ -1,6 +1,5 @@
 module Main where
 
-import Data.IORef
 import System.Environment
 import System.Exit
 import System.IO
@@ -17,7 +16,8 @@ instance Show InterpreterContext where
 
 emptyContext :: IO InterpreterContext
 emptyContext = do
-  return $ Context False newInterpreterState
+  newIS <- newInterpreterState
+  return $ Context False newIS
 
 main :: IO ()
 main = do

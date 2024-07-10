@@ -10,9 +10,10 @@ import Environment
 
 
 
-newInterpreterState :: InterpreterState
-newInterpreterState = InterpreterState globals globals
-  where globals = mkRootEnv
+newInterpreterState :: IO InterpreterState
+newInterpreterState = do
+  globals <- mkRootEnv
+  return $ InterpreterState globals globals
 
 -- and then:
 runInterpreter :: InterpreterState -> Interpreter a -> IO (Either InterpreterError a, InterpreterState)
@@ -40,18 +41,12 @@ execute (VariableDeclaration varName maybeExpr) = do
 execute (Block stmts) = do
   currentState <- get
   -- the interpreter state for the block is the same as for the parent scope, but with a fresh child env
-  let blockState = currentState { env = mkChildEnv (env currentState) }
-  -- run all the statements with the new state. If there's an error, just reraise it
-  -- as no state has been changed yet. If there is no error, we recover the parent env
-  -- from the returned state as some of the variables in the outer scopes may have been
-  -- assigned to.
+  blockEnv <- mkChildEnv (env currentState)
+  let blockState = currentState { env = blockEnv }
+  -- run all the statements with the new state.
   (result, finalState) <- liftIO $ runInterpreter blockState (executeMany stmts)
   either (\err -> throwError err)
-         (\_res -> do
-                    let finalEnv = env finalState
-                    -- fromJust is safe here because it is guaranteed that there is a parent env
-                    put $ currentState { env = fromJust $ parent finalEnv }
-         )
+         (\_res -> return ())
          result
 execute (IfStatement condition thenBranch elseBranch) = do
   condVal <- evaluate condition
@@ -150,7 +145,8 @@ call (LoxFunction arity name argNames body closure) args = do
   currentState <- get
   -- the interpreter state for the block is the same as for the parent scope, but with a fresh child env
   -- that has the closure of the function as its parent
-  let functionState = currentState { env = mkChildEnv closure } -- from  the book but doesn't work??
+  childEnv <- mkChildEnv closure
+  let functionState = currentState { env = childEnv } -- from the book but doesn't work??
   -- I think it is because you actually do need mutable references, otherwise the changes to one "global"
   -- parent scope won't show up in the other :|
   -- let functionState = currentState { env = mkChildEnv (env currentState) }
@@ -166,9 +162,6 @@ call (LoxFunction arity name argNames body closure) args = do
                     _ -> throwError err
          )
          (\_res -> do
-                    let finalEnv = env finalState
-                    -- fromJust is safe here because it is guaranteed that there is a parent env
-                    put $ currentState { env = fromJust $ parent finalEnv }
                     -- the case where a value is returned was handled above in the error branch, but
                     -- if the function completed without any return value we still have to return
                     -- something, in this case Null
