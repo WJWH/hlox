@@ -65,7 +65,6 @@ run context input = do
       print err
       return $ context { hadError = True }
     Right stmts -> do
-      print stmts
       newState <- interpret (interpreterState context) stmts
       return $ context { interpreterState = newState }
 
