@@ -128,6 +128,7 @@ data InterpreterError = ArgumentError { description :: String }
 type Resolver = ExceptT ResolverError (StateT ResolverState IO)
 data ResolverError = ResolverError String deriving (Show,Eq)
 data ResolverState = ResolverState { scopes :: [Scope]
+                                   , locals :: Locals
                                    } deriving (Show,Eq)
 type Scope = M.Map String Bool
 type Locals = M.Map Expression Int
