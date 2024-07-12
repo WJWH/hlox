@@ -122,3 +122,11 @@ data InterpreterError = ArgumentError { description :: String }
                       | RuntimeError { description :: String }
                       | ReturnValue { value :: RuntimeValue } -- using this to implement `return` statements
                       deriving (Show,Eq)
+
+-- types for the resolver are very much like the types for the interpreter itself, since it also walks
+-- the entire AST
+type Resolver = ExceptT ResolverError (StateT ResolverState IO)
+data ResolverError = ResolverError String deriving (Show,Eq)
+data ResolverState = ResolverState { scopes :: [Scope]
+                                   } deriving (Show,Eq)
+type Scope = M.Map String Bool
