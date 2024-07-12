@@ -65,6 +65,7 @@ executable hlox
     other-modules:    Environment,
                       Interpreter,
                       Parser,
+                      Resolver,
                       Scanner,
                       Types
 
