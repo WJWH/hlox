@@ -66,16 +66,16 @@ data Expression = Grouping Expression
                 | Unary UnaryOperation Expression
                 | Binary BinaryOperation Expression Expression
                 | Literal LiteralContents
-                | Variable String
-                | Assignment String Expression
+                | Variable Token
+                | Assignment Token Expression
                 | Logical LogicalOperation Expression Expression
                 | Call Expression Token [Expression]
                 deriving (Show,Eq,Ord)
 
 data Statement = ExprStatement Expression
                | PrintStatement Expression
-               | VariableDeclaration String (Maybe Expression)
-               | FunctionDeclaration String [String] Statement -- name, params, body (must be a Block)
+               | VariableDeclaration Token (Maybe Expression)
+               | FunctionDeclaration Token [Token] Statement -- name, params, body (must be a Block)
                | Block [Statement]
                | IfStatement Expression Statement (Maybe Statement)
                | WhileStatement Expression Statement

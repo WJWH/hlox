@@ -3,7 +3,6 @@ module Interpreter where
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.State
-import Data.Maybe
 
 import Types
 import Environment
@@ -34,10 +33,10 @@ execute (PrintStatement expr) = do
   liftIO . putStrLn $ stringify exprVal
 execute (VariableDeclaration varName maybeExpr) = do
   case maybeExpr of
-    Nothing -> defineVar varName Null
+    Nothing -> defineVar (lexeme varName) Null
     Just expr -> do
       exprVal <- evaluate expr
-      defineVar varName exprVal
+      defineVar (lexeme varName) exprVal
 execute (Block stmts) = do
   currentState <- get
   -- the interpreter state for the block is the same as for the parent scope, but with a fresh child env
@@ -59,10 +58,11 @@ execute stmt@(WhileStatement condition body) = do
   condVal <- evaluate condition
   when (isTruthy condVal) (execute body >> execute stmt) -- yay tail call optimization
 execute EmptyStatement = return () -- basically a NOP, only used for for loops
-execute (FunctionDeclaration name args body) = do
+execute (FunctionDeclaration nameToken args body) = do
   closure <- gets env
-  let fn = LoxFunction (length args) name args body closure
-  defineVar name fn
+  -- By the time we get here, keeping the entire token is no longer required I think?
+  let fn = LoxFunction (length args) (lexeme nameToken) (map lexeme args) body closure
+  defineVar (lexeme nameToken) fn
 execute (ReturnStatement expr) = do
   exprVal <- evaluate expr
   throwError $ ReturnValue exprVal
@@ -118,10 +118,10 @@ evaluate (Binary op left right) = do
       (Number l, Number r) -> return . Number $ l + r
       (String ll, String rr) -> return . String $ ll ++ rr
       _ -> throwError $ ArgumentError ("Arguments to Plus must be either two Numbers or two Strings")
-evaluate (Variable name) = getVar name
-evaluate (Assignment name expr) = do
+evaluate (Variable nameToken) = getVar (lexeme nameToken)
+evaluate (Assignment nameToken expr) = do
   exprVal <- evaluate expr
-  assignVar name exprVal
+  assignVar (lexeme nameToken) exprVal
 evaluate (Logical op left right) = do
   leftVal <- evaluate left
   case op of

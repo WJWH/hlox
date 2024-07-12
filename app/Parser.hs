@@ -33,7 +33,7 @@ grouping = do
 
 identifier :: TokenParser Expression
 identifier = token show (const (initialPos "borp")) $ \tok -> case tokenType tok of
-  IDENTIFIER str -> Just $ Variable str
+  IDENTIFIER _str -> Just $ Variable tok
   _ -> Nothing
 
 -- For tokens that may have content
@@ -262,30 +262,30 @@ expressionStatement = do
 statement :: TokenParser Statement
 statement = returnStatement <|> printStatement <|> blockStatement <|> ifStatement <|> whileStatement <|> forStatement <|> expressionStatement
 
-varName :: Expression -> String
-varName (Variable num) = num
-varName _ = error "Unreachable, tried to call numVal on non-number runtime value"
+varToToken :: Expression -> Token
+varToToken (Variable tok) = tok
+varToToken _ = error "Unreachable, tried to call varName on non-variable runtime value"
 
 varDeclaration :: TokenParser Statement
 varDeclaration = do
   matchToken VAR
-  name <- identifier <?> "variable name"
+  nameToken <- identifier <?> "variable name"
   initializer <- option Nothing $ do
     matchToken EQUAL
     expr <- expression
     return $ Just expr
   matchToken SEMICOLON <?> "semicolon at end of variable declaration"
-  return $ VariableDeclaration (varName name) initializer
+  return $ VariableDeclaration (varToToken nameToken) initializer
 
 funDeclaration :: TokenParser Statement
 funDeclaration = do
   matchToken FUN
-  name <- identifier <?> "function name"
+  nameToken <- identifier <?> "function name"
   matchToken LEFT_PAREN
   args <- identifier `sepBy` matchToken COMMA
   matchToken RIGHT_PAREN
   body <- blockStatement
-  return $ FunctionDeclaration (varName name) (map varName args) body
+  return $ FunctionDeclaration (varToToken nameToken) (map varToToken args) body
 
 declaration :: TokenParser Statement
 declaration = funDeclaration <|> varDeclaration <|> statement
