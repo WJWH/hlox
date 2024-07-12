@@ -64,11 +64,11 @@ scanner !linenr (c:xs)
   -- numbers
   | isDigit c = Token (NUMBER num) (show num) linenr : scanner (linenr) rest
   -- identifiers and reserved words
-  | isAlpha c = Token (tokType) "" linenr : scanner (linenr) tokRest -- how to put the string for the lexeme in here properly?
+  | isAlpha c = Token (tokType) lexeme linenr : scanner (linenr) tokRest
   -- unknown character leads to error
   | otherwise = Token (ERROR $ concat ["Unknown character: ", show c, " on line ", show linenr]) "" linenr : scanner linenr xs
   where (num,rest) = numberLiteral (c:xs)
-        (tokType,tokRest) = identifier (c:xs)
+        (tokType,lexeme,tokRest) = identifier (c:xs)
 
 stringLiteral :: String -> (String,Int,String)
 stringLiteral xs = (str,newlineCount, drop 1 rest) -- skip the closing '"' too
@@ -85,8 +85,8 @@ numberLiteral xs = (num,rest)
           _ -> (read firstPart, xs') -- no fractional part
         (fractionalPart, restOfInput) = span isDigit (drop 1 xs')
 
-identifier :: String -> (TokenType,String)
-identifier xs = (token,rest)
+identifier :: String -> (TokenType,String,String)
+identifier xs = (token,name,rest)
   where (name,rest) = span isAlphaNum xs
         token = case M.lookup name reservedWords of
           Nothing -> IDENTIFIER name
