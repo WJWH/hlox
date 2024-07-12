@@ -44,7 +44,7 @@ execute (Block stmts) = do
   blockEnv <- mkChildEnv (env currentState)
   let blockState = currentState { env = blockEnv }
   -- run all the statements with the new state.
-  (result, finalState) <- liftIO $ runInterpreter blockState (executeMany stmts)
+  (result, _finalState) <- liftIO $ runInterpreter blockState (executeMany stmts)
   either (\err -> throwError err)
          (\_res -> return ())
          result
@@ -154,7 +154,7 @@ call (LoxFunction arity name argNames body closure) args = do
   -- as no state has been changed yet. If there is no error, we recover the parent env
   -- from the returned state as some of the variables in the outer scopes may have been
   -- assigned to.
-  (result, finalState) <- liftIO $ runInterpreter functionState $ do
+  (result, _finalState) <- liftIO $ runInterpreter functionState $ do
     mapM_ (\(argName, a) -> defineVar argName a) (zip argNames args) -- assign the params
     execute body -- run the body in this new env with the params defined
   either (\err -> case err of
