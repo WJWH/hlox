@@ -46,21 +46,21 @@ data TokenType = LEFT_PAREN -- single character tokens
                | WHILE
                | EOF -- eof, cannot really be typed in of course but still handy to have for the parser
                | ERROR String -- Special case for reporting errors
-               deriving (Show,Eq)
+               deriving (Show,Eq,Ord)
 
-data Token = Token { tokenType :: TokenType, lexeme :: String, line :: Int } deriving (Show,Eq)
+data Token = Token { tokenType :: TokenType, lexeme :: String, line :: Int } deriving (Show,Eq,Ord)
 
 -- Parser related types
-data UnaryOperation = Negate | Bang deriving (Show,Eq)
+data UnaryOperation = Negate | Bang deriving (Show,Eq,Ord)
 data BinaryOperation = DoubleEqual | NotEqual | LessThan | LessEqualThan | GreaterThan | GreaterEqualThan
-                     | Add | Subtract | Multiply | Divide deriving (Show,Eq)
-data LogicalOperation = And | Or deriving (Show,Eq)
+                     | Add | Subtract | Multiply | Divide deriving (Show,Eq,Ord)
+data LogicalOperation = And | Or deriving (Show,Eq,Ord)
 data LiteralContents = NumberLit Double
                      | StringLit String
                      | TrueLit
                      | FalseLit
                      | NilLit
-                     deriving (Show,Eq)
+                     deriving (Show,Eq,Ord)
 
 data Expression = Grouping Expression
                 | Unary UnaryOperation Expression
@@ -70,7 +70,7 @@ data Expression = Grouping Expression
                 | Assignment String Expression
                 | Logical LogicalOperation Expression Expression
                 | Call Expression Token [Expression]
-                deriving (Show,Eq)
+                deriving (Show,Eq,Ord)
 
 data Statement = ExprStatement Expression
                | PrintStatement Expression
@@ -130,3 +130,4 @@ data ResolverError = ResolverError String deriving (Show,Eq)
 data ResolverState = ResolverState { scopes :: [Scope]
                                    } deriving (Show,Eq)
 type Scope = M.Map String Bool
+type Locals = M.Map Expression Int
