@@ -12,6 +12,9 @@ cradle:
     - path: "app/Parser.hs"
       component: "hlox:exe:hlox"
 
+    - path: "app/Resolver.hs"
+      component: "hlox:exe:hlox"
+
     - path: "app/Scanner.hs"
       component: "hlox:exe:hlox"
 
