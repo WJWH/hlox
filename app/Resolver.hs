@@ -1,6 +1,5 @@
 module Resolver where
 
-import Control.Monad
 import Control.Monad.Except
 import Control.Monad.State
 import qualified Data.Map as M
@@ -28,7 +27,17 @@ resolveStatement (VariableDeclaration token maybeInitializer) = do
 
 resolveExpression :: Expression -> Resolver ()
 resolveExpression = undefined
+-- Grouping Expression
+-- Unary UnaryOperation Expression
+-- Binary BinaryOperation Expression Expression
+-- Literal LiteralContents
+-- Variable Token
+-- Assignment Token Expression
+-- Logical LogicalOperation Expression Expression
+-- Call Expression Token [Expression]
 
+-- puts an entry in the "locals" map if the variable can actually be found in one of
+-- the scopes.
 resolveLocal :: Expression -> String -> Resolver ()
 resolveLocal = undefined
 
