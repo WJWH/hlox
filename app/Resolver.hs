@@ -26,20 +26,28 @@ resolveStatement (VariableDeclaration token maybeInitializer) = do
   define $ lexeme token
 
 resolveExpression :: Expression -> Resolver ()
-resolveExpression = undefined
--- Grouping Expression
--- Unary UnaryOperation Expression
--- Binary BinaryOperation Expression Expression
--- Literal LiteralContents
--- Variable Token
--- Assignment Token Expression
--- Logical LogicalOperation Expression Expression
--- Call Expression Token [Expression]
+resolveExpression (Grouping expr) = undefined
+resolveExpression (Unary op expr) = undefined
+resolveExpression (Binary op left right) = undefined
+resolveExpression (Literal litContents) = undefined
+resolveExpression (Variable tok) = undefined
+resolveExpression (Assignment tok expr) = undefined
+resolveExpression (Logical op left right) = undefined
+resolveExpression (Call calleeExpr tok argExprs) = undefined
 
 -- puts an entry in the "locals" map if the variable can actually be found in one of
 -- the scopes.
 resolveLocal :: Expression -> String -> Resolver ()
-resolveLocal = undefined
+resolveLocal expr varname = do
+  -- find how far up the env ancestry we need to go to find the variable
+  scopeStack <- gets scopes
+  let varDepth = findDepth scopeStack varname
+  -- then stick that information in the locals (or throw an error if the variable could not be found)
+  case varDepth of
+    Nothing -> throwError $ ResolverError ("Variable could not be found: " ++ varname)
+    Just depth -> do
+      oldLocals <- gets locals
+      modify $ \s -> s { locals = M.insert expr depth oldLocals }
 
 -- Begins variable definition process
 declare :: String -> Resolver ()
@@ -67,3 +75,10 @@ endScope :: Resolver ()
 endScope = do
   scopeStack <- gets scopes
   modify $ \s -> s { scopes = drop 1 scopeStack }
+
+findDepth :: [Scope] -> String -> Maybe Int
+findDepth [] _ = Nothing
+findDepth (scope:parentScopes) varname = case M.lookup varname scope of
+  Just True -> Just 0
+  Just False -> Nothing -- we found it, but it's still being initialised.
+  Nothing -> fmap (+1) $ findDepth parentScopes varname -- See if we can find it in one of the parent scopes
