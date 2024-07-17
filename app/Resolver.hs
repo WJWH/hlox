@@ -30,7 +30,7 @@ resolveExpression (Grouping expr) = undefined
 resolveExpression (Unary op expr) = undefined
 resolveExpression (Binary op left right) = undefined
 resolveExpression (Literal litContents) = undefined
-resolveExpression (Variable tok) = undefined
+resolveExpression (Variable tok) = undefined -- should call into resolveLocal
 resolveExpression (Assignment tok expr) = undefined
 resolveExpression (Logical op left right) = undefined
 resolveExpression (Call calleeExpr tok argExprs) = undefined
@@ -76,6 +76,8 @@ endScope = do
   scopeStack <- gets scopes
   modify $ \s -> s { scopes = drop 1 scopeStack }
 
+-- The book says that if the thing can't be found, we'll just assume the var is global so
+-- maybe we need another value to indicate that
 findDepth :: [Scope] -> String -> Maybe Int
 findDepth [] _ = Nothing
 findDepth (scope:parentScopes) varname = case M.lookup varname scope of
