@@ -42,9 +42,10 @@ resolveLocal expr varname = do
   -- find how far up the env ancestry we need to go to find the variable
   scopeStack <- gets scopes
   let varDepth = findDepth scopeStack varname
-  -- then stick that information in the locals (or throw an error if the variable could not be found)
+  -- then stick that information in the locals. If the variable couldn't be found then according
+  -- to the book we assume it's a global that does not need to be resolved.
   case varDepth of
-    Nothing -> throwError $ ResolverError ("Variable could not be found: " ++ varname)
+    Nothing -> return ()
     Just depth -> do
       oldLocals <- gets locals
       modify $ \s -> s { locals = M.insert expr depth oldLocals }
