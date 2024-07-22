@@ -26,12 +26,26 @@ resolveStatement (VariableDeclaration token maybeInitializer) = do
   define $ lexeme token
 
 resolveExpression :: Expression -> Resolver ()
+-- these expression types reference variables directly and should call into resolveLocal
+resolveExpression (Variable tok) = do
+  scopeStack <- gets scopes
+  -- IF there is a current scope AND the variable is in there BUT its still False, then we need
+  -- to error because this variable is being used in its own initializer, which is an error
+  case scopeStack of
+    [] -> return () -- no current scope exists, do nothing
+    (currentScope:parentScopes) -> case M.lookup (lexeme tok) currentScope of
+      Just False -> throwError $ ResolverError "Can't read local variable in its own initializer."
+      _ -> return () -- Both Just True and Nothing are OK, do nothing
+  resolveLocal (Variable tok) (lexeme tok)
+
+resolveExpression (Assignment tok expr) = do
+  resolveExpression expr
+  resolveLocal (Assignment tok expr) (lexeme tok)
+-- all other expressions can just recurse into their subcomponents
 resolveExpression (Grouping expr) = undefined
 resolveExpression (Unary op expr) = undefined
 resolveExpression (Binary op left right) = undefined
 resolveExpression (Literal litContents) = undefined
-resolveExpression (Variable tok) = undefined -- should call into resolveLocal
-resolveExpression (Assignment tok expr) = undefined
 resolveExpression (Logical op left right) = undefined
 resolveExpression (Call calleeExpr tok argExprs) = undefined
 
