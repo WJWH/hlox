@@ -54,7 +54,7 @@ declare :: String -> Resolver ()
 declare varname = do
   scopeStack <- gets scopes
   case scopeStack of
-    [] -> throwError (ResolverError "No scope declared")
+    [] -> return ()
     (currentScope:parents) -> modify $ \s -> s { scopes = ((M.insert varname False currentScope) : parents)}
 
 -- finishes variable definition process
@@ -62,7 +62,7 @@ define :: String -> Resolver ()
 define varname = do
   scopeStack <- gets scopes
   case scopeStack of
-    [] -> throwError (ResolverError "No scope declared")
+    [] -> return ()
     (currentScope:parents) -> modify $ \s -> s { scopes = ((M.insert varname True currentScope) : parents)}
 
 -- utility functions
