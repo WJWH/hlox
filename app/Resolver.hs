@@ -25,6 +25,14 @@ resolveStatement (VariableDeclaration token maybeInitializer) = do
     Just expr -> resolveExpression expr
   define $ lexeme token
 
+resolveStatement (ExprStatement expr) = undefined
+resolveStatement (PrintStatement expr) = undefined
+resolveStatement (FunctionDeclaration tok args body) = undefined
+resolveStatement (IfStatement condition trueBranch falseBranch) = undefined
+resolveStatement (WhileStatement condition body) = undefined
+resolveStatement (ReturnStatement expr) = undefined
+resolveStatement (EmptyStatement) = undefined
+
 resolveExpression :: Expression -> Resolver ()
 -- these expression types reference variables directly and should call into resolveLocal
 resolveExpression (Variable tok) = do
