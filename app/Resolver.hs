@@ -33,7 +33,7 @@ resolveExpression (Variable tok) = do
   -- to error because this variable is being used in its own initializer, which is an error
   case scopeStack of
     [] -> return () -- no current scope exists, do nothing
-    (currentScope:parentScopes) -> case M.lookup (lexeme tok) currentScope of
+    (currentScope:_parentScopes) -> case M.lookup (lexeme tok) currentScope of
       Just False -> throwError $ ResolverError "Can't read local variable in its own initializer."
       _ -> return () -- Both Just True and Nothing are OK, do nothing
   resolveLocal (Variable tok) (lexeme tok)
@@ -42,12 +42,14 @@ resolveExpression (Assignment tok expr) = do
   resolveExpression expr
   resolveLocal (Assignment tok expr) (lexeme tok)
 -- all other expressions can just recurse into their subcomponents
-resolveExpression (Grouping expr) = undefined
-resolveExpression (Unary op expr) = undefined
-resolveExpression (Binary op left right) = undefined
-resolveExpression (Literal litContents) = undefined
-resolveExpression (Logical op left right) = undefined
-resolveExpression (Call calleeExpr tok argExprs) = undefined
+resolveExpression (Grouping expr) = resolveExpression expr
+resolveExpression (Unary _op expr) = resolveExpression expr
+resolveExpression (Binary _op left right) = resolveExpression left >> resolveExpression right
+resolveExpression (Literal _litContents) = return () -- nothing to do here, a literal is by definition not a variable
+resolveExpression (Logical _op left right) = resolveExpression left >> resolveExpression right
+resolveExpression (Call calleeExpr _tok argExprs) = do
+  resolveExpression calleeExpr
+  mapM_ resolveExpression argExprs
 
 -- puts an entry in the "locals" map if the variable can actually be found in one of
 -- the scopes.
