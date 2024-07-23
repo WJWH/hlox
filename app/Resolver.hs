@@ -1,8 +1,10 @@
 module Resolver where
 
+import Control.Monad
 import Control.Monad.Except
 import Control.Monad.State
 import qualified Data.Map as M
+import Data.Maybe
 
 import Types
 
@@ -25,13 +27,24 @@ resolveStatement (VariableDeclaration token maybeInitializer) = do
     Just expr -> resolveExpression expr
   define $ lexeme token
 
-resolveStatement (ExprStatement expr) = undefined
-resolveStatement (PrintStatement expr) = undefined
-resolveStatement (FunctionDeclaration tok args body) = undefined
-resolveStatement (IfStatement condition trueBranch falseBranch) = undefined
-resolveStatement (WhileStatement condition body) = undefined
-resolveStatement (ReturnStatement expr) = undefined
-resolveStatement (EmptyStatement) = undefined
+resolveStatement (ExprStatement expr) = resolveExpression expr
+resolveStatement (PrintStatement expr) = resolveExpression expr
+resolveStatement (FunctionDeclaration tok params body) = do
+  declare $ lexeme tok
+  define $ lexeme tok
+  beginScope
+  mapM_ (\param -> declare (lexeme param) >> define (lexeme param)) params
+  resolveStatement body
+  endScope
+resolveStatement (IfStatement condition trueBranch falseBranch) = do
+  resolveExpression condition
+  resolveStatement trueBranch
+  when (isJust falseBranch) $ resolveStatement (fromJust falseBranch)
+resolveStatement (WhileStatement condition body) = do
+  resolveExpression condition
+  resolveStatement body
+resolveStatement (ReturnStatement expr) = resolveExpression expr
+resolveStatement (EmptyStatement) = return ()
 
 resolveExpression :: Expression -> Resolver ()
 -- these expression types reference variables directly and should call into resolveLocal
