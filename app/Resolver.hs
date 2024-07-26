@@ -8,8 +8,13 @@ import Data.Maybe
 
 import Types
 
-resolve :: Locals -> [Statement] -> IO Locals
-resolve locals stmts = undefined
+resolve :: Locals -> [Statement] -> IO (Either ResolverError Locals)
+resolve previousLocals stmts = do
+  result <- runResolver initialState $ mapM_ resolveStatement stmts
+  case result of
+    (Right _, finalState) -> return $ Right $ locals finalState
+    (Left err, _finalState) -> return $ Left err
+  where initialState = ResolverState [] previousLocals -- no scopes and locals from args
 
 runResolver :: ResolverState -> Resolver a -> IO (Either ResolverError a, ResolverState)
 runResolver st r = runStateT (runExceptT r) st
