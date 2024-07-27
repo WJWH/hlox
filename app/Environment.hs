@@ -35,6 +35,16 @@ getVar name = do
     Nothing -> throwError . RuntimeError $ "Undefined variable read: '" ++ name ++ "'."
     Just val -> return val
 
+getVarAt :: Int -> String -> Interpreter RuntimeValue
+getVarAt depth name = do
+  currentEnv <- gets env
+  targetEnv <- ancestor depth currentEnv
+  targetBindings <- liftIO . readIORef $ bindings targetEnv
+  case M.lookup name targetBindings of
+    Nothing -> throwError . RuntimeError $ "Should never happen, tried to access variable that doesn't exist (or locals is wrong)"
+    Just var -> return var
+
+
 assignVar :: String -> RuntimeValue -> Interpreter RuntimeValue
 assignVar name val = do
   currentEnv <- gets env
@@ -43,8 +53,6 @@ assignVar name val = do
     Nothing -> throwError . RuntimeError $ "Undefined variable write: '" ++ name ++ "'."
     Just updatedEnv -> (modify' $ \s -> s { env = updatedEnv }) >> return val
 
--- Unlike loxomotive, our env don't have any IORef use. The cost is that the logic is more
--- complex and not very much like the book though.
 findVar :: String -> Env -> Interpreter (Maybe RuntimeValue)
 findVar name (Env parent bindingsRef) = do
   bindings <- liftIO $ readIORef bindingsRef
@@ -54,8 +62,6 @@ findVar name (Env parent bindingsRef) = do
       Nothing -> return Nothing -- we're in the root scope, so no parent to recurse into
       Just p -> findVar name p -- maybe the value is available in the parent scope or above?
 
--- return Nothing if the variable was not found in the env or any of its parents, returns the
--- modified env wrapped in Just if it was found and updated.
 setVar :: String -> RuntimeValue -> Env -> Interpreter (Maybe Env)
 setVar name val (Env parent bindingsRef) = do
   bindings <- liftIO $ readIORef bindingsRef
@@ -66,3 +72,9 @@ setVar name val (Env parent bindingsRef) = do
     Nothing -> case parent of
       Nothing -> return Nothing -- no parent available, so the var to update couldn't be found
       Just p -> setVar name val p -- maybe the parent has the var, recurse upward
+
+ancestor :: Int -> Env -> Interpreter Env
+ancestor 0 env = return $ env
+ancestor depth env = case parent env of
+  Nothing -> throwError . RuntimeError $ "Should never happen, tried to access ancestor that doesn't exist"
+  Just directAncestor -> ancestor (depth - 1) directAncestor
