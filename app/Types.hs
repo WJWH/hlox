@@ -117,7 +117,7 @@ type Interpreter = ExceptT InterpreterError (StateT InterpreterState IO)
 data Env = Env { parent :: Maybe Env
                , bindings :: IORef (M.Map String RuntimeValue)
                } deriving (Eq)
-data InterpreterState = InterpreterState { env :: Env, globals :: Env } deriving (Eq)
+data InterpreterState = InterpreterState { env :: Env, globals :: Env, locals :: Locals } deriving (Eq)
 data InterpreterError = ArgumentError { description :: String }
                       | RuntimeError { description :: String }
                       | ReturnValue { value :: RuntimeValue } -- using this to implement `return` statements
@@ -128,7 +128,7 @@ data InterpreterError = ArgumentError { description :: String }
 type Resolver = ExceptT ResolverError (StateT ResolverState IO)
 data ResolverError = ResolverError String deriving (Show,Eq)
 data ResolverState = ResolverState { scopes :: [Scope]
-                                   , locals :: Locals
+                                   , resolverLocals :: Locals
                                    } deriving (Show,Eq)
 type Scope = M.Map String Bool
 type Locals = M.Map Expression Int

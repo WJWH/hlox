@@ -12,7 +12,7 @@ resolve :: Locals -> [Statement] -> IO (Either ResolverError Locals)
 resolve previousLocals stmts = do
   result <- runResolver initialState $ mapM_ resolveStatement stmts
   case result of
-    (Right _, finalState) -> return $ Right $ locals finalState
+    (Right _, finalState) -> return $ Right $ resolverLocals finalState
     (Left err, _finalState) -> return $ Left err
   where initialState = ResolverState [] previousLocals -- no scopes and locals from args
 
@@ -89,8 +89,8 @@ resolveLocal expr varname = do
   case varDepth of
     Nothing -> return ()
     Just depth -> do
-      oldLocals <- gets locals
-      modify $ \s -> s { locals = M.insert expr depth oldLocals }
+      oldLocals <- gets resolverLocals
+      modify $ \s -> s { resolverLocals = M.insert expr depth oldLocals }
 
 -- Begins variable definition process
 declare :: String -> Resolver ()
