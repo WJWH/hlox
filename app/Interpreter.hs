@@ -3,16 +3,17 @@ module Interpreter where
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.State
+import qualified Data.Map as M
 
 import Types
 import Environment
 
 
 
-newInterpreterState :: IO InterpreterState
-newInterpreterState = do
+newInterpreterState :: Locals -> IO InterpreterState
+newInterpreterState locals = do
   globals <- mkRootEnv
-  return $ InterpreterState globals globals
+  return $ InterpreterState globals globals locals
 
 -- and then:
 runInterpreter :: InterpreterState -> Interpreter a -> IO (Either InterpreterError a, InterpreterState)
@@ -118,7 +119,7 @@ evaluate (Binary op left right) = do
       (Number l, Number r) -> return . Number $ l + r
       (String ll, String rr) -> return . String $ ll ++ rr
       _ -> throwError $ ArgumentError ("Arguments to Plus must be either two Numbers or two Strings")
-evaluate (Variable nameToken) = getVar (lexeme nameToken)
+evaluate expr@(Variable nameToken) = lookupVariable nameToken expr
 evaluate (Assignment nameToken expr) = do
   exprVal <- evaluate expr
   assignVar (lexeme nameToken) exprVal
@@ -179,6 +180,19 @@ isTruthy _ = True
 numVal :: RuntimeValue -> Double
 numVal (Number num) = num
 numVal _ = error "Unreachable, tried to call numVal on non-number runtime value"
+
+lookupVariable :: Token -> Expression -> Interpreter RuntimeValue
+lookupVariable nameToken expr = do
+  localVars <- gets locals
+  case M.lookup expr localVars of
+    Nothing -> do
+      globalVars <- gets globals
+      case M.lookup (lexeme nameToken) globalVars of
+        Nothing -> throwError . RuntimeError $ "Undefined variable read: '" ++ (lexeme nameToken) ++ "'."
+        Just var -> return var
+    Just depth -> do
+      getVarAt depth (lexeme nameToken)
+
 
 -- Will throw an exception unless both values are Numbers
 ensureBothNumber :: BinaryOperation -> RuntimeValue -> RuntimeValue -> Interpreter ()
