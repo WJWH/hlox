@@ -120,9 +120,9 @@ evaluate (Binary op left right) = do
       (String ll, String rr) -> return . String $ ll ++ rr
       _ -> throwError $ ArgumentError ("Arguments to Plus must be either two Numbers or two Strings")
 evaluate expr@(Variable nameToken) = lookupVariable nameToken expr
-evaluate (Assignment nameToken expr) = do
+evaluate ass@(Assignment nameToken expr) = do
   exprVal <- evaluate expr
-  assignVar (lexeme nameToken) exprVal
+  assignVariable ass nameToken exprVal
 evaluate (Logical op left right) = do
   leftVal <- evaluate left
   case op of
@@ -187,11 +187,26 @@ lookupVariable nameToken expr = do
   case M.lookup expr localVars of
     Nothing -> do
       globalVars <- gets globals
-      case M.lookup (lexeme nameToken) globalVars of
+      findResult <- findVar (lexeme nameToken) globalVars
+      case findResult of
         Nothing -> throwError . RuntimeError $ "Undefined variable read: '" ++ (lexeme nameToken) ++ "'."
         Just var -> return var
     Just depth -> do
       getVarAt depth (lexeme nameToken)
+
+-- assignVar (lexeme nameToken) exprVal
+assignVariable :: Expression -> Token -> RuntimeValue -> Interpreter RuntimeValue
+assignVariable ass nameToken exprVal = do
+  localVars <- gets locals
+  case M.lookup ass localVars of
+    Nothing -> do
+      globalVars <- gets globals
+      setResult <- setVar (lexeme nameToken) exprVal globalVars
+      case setResult of
+        Nothing -> throwError . RuntimeError $ "Undefined variable write: '" ++ (lexeme nameToken) ++ "'."
+        Just var -> return exprVal
+    Just depth -> do
+      setVarAt depth (lexeme nameToken) exprVal
 
 
 -- Will throw an exception unless both values are Numbers

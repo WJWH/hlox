@@ -53,6 +53,13 @@ assignVar name val = do
     Nothing -> throwError . RuntimeError $ "Undefined variable write: '" ++ name ++ "'."
     Just updatedEnv -> (modify' $ \s -> s { env = updatedEnv }) >> return val
 
+setVarAt :: Int -> String -> RuntimeValue -> Interpreter RuntimeValue
+setVarAt depth name val = do
+  currentEnv <- gets env
+  targetEnv <- ancestor depth currentEnv
+  liftIO $ modifyIORef (bindings targetEnv) $ M.insert name val
+  return val
+
 findVar :: String -> Env -> Interpreter (Maybe RuntimeValue)
 findVar name (Env parent bindingsRef) = do
   bindings <- liftIO $ readIORef bindingsRef
