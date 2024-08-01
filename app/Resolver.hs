@@ -98,7 +98,10 @@ declare varname = do
   scopeStack <- gets scopes
   case scopeStack of
     [] -> return ()
-    (currentScope:parents) -> modify $ \s -> s { scopes = ((M.insert varname False currentScope) : parents)}
+    (currentScope:parents) -> do
+      case M.lookup varname currentScope of
+        Nothing -> modify $ \s -> s { scopes = ((M.insert varname False currentScope) : parents)}
+        Just _ -> throwError . ResolverError $ "Already a variable with this name in this scope."
 
 -- finishes variable definition process
 define :: String -> Resolver ()
