@@ -60,7 +60,7 @@ resetErrors context = context { hadError = True }
 
 run :: InterpreterContext -> String -> IO InterpreterContext
 run context input = do
-  let tokens = scanner 1 input
+  let tokens = scanner 1 0 input
   let parseResult = parse program "" tokens
   case parseResult of
     Left err -> do

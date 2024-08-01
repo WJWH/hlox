@@ -25,48 +25,49 @@ reservedWords = M.fromList [
     ("while",WHILE)
   ]
 
-scanner :: Int -> String -> [Token]
+scanner :: Int -> Int -> String -> [Token]
 -- EOF, natural end of recursion
-scanner !linenr [] = [Token EOF "" linenr]
+scanner !linenr !pos [] = [Token EOF "" linenr pos]
 -- whitespace of various kinds. We just skip these, when encountering a newline we also increase the linenr
-scanner !linenr (' ':xs)  = scanner linenr xs
-scanner !linenr ('\r':xs) = scanner linenr xs
-scanner !linenr ('\t':xs) = scanner linenr xs
-scanner !linenr ('\n':xs) = scanner (linenr+1) xs
+scanner !linenr !pos (' ':xs)  = scanner linenr (pos+1) xs
+scanner !linenr !pos ('\r':xs) = scanner linenr (pos+1) xs
+scanner !linenr !pos ('\t':xs) = scanner linenr (pos+1) xs
+scanner !linenr _ ('\n':xs) = scanner (linenr+1) 0 xs
 -- lexemes that MIGHT be multicharacter but could also be single character
-scanner !linenr ('!':'=':xs) = Token BANG_EQUAL "!=" linenr : scanner linenr xs
-scanner !linenr ('!':xs) = Token BANG "!" linenr : scanner linenr xs
-scanner !linenr ('=':'=':xs) = Token EQUAL_EQUAL "==" linenr : scanner linenr xs
-scanner !linenr ('=':xs) = Token EQUAL "=" linenr : scanner linenr xs
-scanner !linenr ('>':'=':xs) = Token GREATER_EQUAL ">=" linenr : scanner linenr xs
-scanner !linenr ('>':xs) = Token GREATER ">" linenr : scanner linenr xs
-scanner !linenr ('<':'=':xs) = Token LESS_EQUAL "<=" linenr : scanner linenr xs
-scanner !linenr ('<':xs) = Token LESS "<" linenr : scanner linenr xs
+scanner !linenr !pos ('!':'=':xs) = Token BANG_EQUAL "!=" linenr pos : scanner linenr (pos+2) xs
+scanner !linenr !pos ('!':xs) = Token BANG "!" linenr pos : scanner linenr (pos+1) xs
+scanner !linenr !pos ('=':'=':xs) = Token EQUAL_EQUAL "==" linenr pos : scanner linenr (pos+2) xs
+scanner !linenr !pos ('=':xs) = Token EQUAL "=" linenr pos : scanner linenr (pos+1) xs
+scanner !linenr !pos ('>':'=':xs) = Token GREATER_EQUAL ">=" linenr pos : scanner linenr (pos+2) xs
+scanner !linenr !pos ('>':xs) = Token GREATER ">" linenr pos : scanner linenr (pos+1) xs
+scanner !linenr !pos ('<':'=':xs) = Token LESS_EQUAL "<=" linenr pos : scanner linenr (pos+2) xs
+scanner !linenr !pos ('<':xs) = Token LESS "<" linenr pos : scanner linenr (pos+1) xs
 -- comment, no token generated but we just drop everything until the newline. The newline doesn't need dropping because we want
--- that to be handled by the `\n` handler which also updates the linenr
-scanner !linenr ('/':'/':xs) = scanner linenr $ dropWhile (/= '\n') xs
-scanner !linenr ('/':xs) = Token SLASH "/" linenr : scanner linenr xs
+-- that to be handled by the `\n` handler which also updates the linenr. The pos doesn't need updates either because no token
+-- is being generated
+scanner !linenr !pos ('/':'/':xs) = scanner linenr pos $ dropWhile (/= '\n') xs
+scanner !linenr !pos ('/':xs) = Token SLASH "/" linenr pos : scanner linenr (pos+1) xs
 -- single token lexemes
-scanner !linenr ('(':xs) = Token LEFT_PAREN "(" linenr : scanner linenr xs
-scanner !linenr (')':xs) = Token RIGHT_PAREN ")" linenr : scanner linenr xs
-scanner !linenr ('{':xs) = Token LEFT_BRACE "{" linenr : scanner linenr xs
-scanner !linenr ('}':xs) = Token RIGHT_BRACE "}" linenr : scanner linenr xs
-scanner !linenr (',':xs) = Token COMMA "," linenr : scanner linenr xs
-scanner !linenr ('.':xs) = Token DOT "." linenr : scanner linenr xs
-scanner !linenr ('-':xs) = Token MINUS "-" linenr : scanner linenr xs
-scanner !linenr ('+':xs) = Token PLUS "+" linenr : scanner linenr xs
-scanner !linenr (';':xs) = Token SEMICOLON ";" linenr : scanner linenr xs
-scanner !linenr ('*':xs) = Token STAR "*" linenr : scanner linenr xs
+scanner !linenr !pos ('(':xs) = Token LEFT_PAREN "(" linenr pos : scanner linenr (pos+1) xs
+scanner !linenr !pos (')':xs) = Token RIGHT_PAREN ")" linenr pos : scanner linenr (pos+1) xs
+scanner !linenr !pos ('{':xs) = Token LEFT_BRACE "{" linenr pos : scanner linenr (pos+1) xs
+scanner !linenr !pos ('}':xs) = Token RIGHT_BRACE "}" linenr pos : scanner linenr (pos+1) xs
+scanner !linenr !pos (',':xs) = Token COMMA "," linenr pos : scanner linenr (pos+1) xs
+scanner !linenr !pos ('.':xs) = Token DOT "." linenr pos : scanner linenr (pos+1) xs
+scanner !linenr !pos ('-':xs) = Token MINUS "-" linenr pos : scanner linenr (pos+1) xs
+scanner !linenr !pos ('+':xs) = Token PLUS "+" linenr pos : scanner linenr (pos+1) xs
+scanner !linenr !pos (';':xs) = Token SEMICOLON ";" linenr pos : scanner linenr (pos+1) xs
+scanner !linenr !pos ('*':xs) = Token STAR "*" linenr pos : scanner linenr (pos+1) xs
 -- strings
-scanner !linenr ('"':xs) = Token (STRING str) str linenr : scanner (linenr + newlineCount) rest
+scanner !linenr !pos ('"':xs) = Token (STRING str) str linenr pos : scanner (linenr + newlineCount) (pos + (length str)) rest
   where (str,newlineCount,rest) = stringLiteral xs
-scanner !linenr (c:xs)
+scanner !linenr !pos (c:xs)
   -- numbers
-  | isDigit c = Token (NUMBER num) (show num) linenr : scanner (linenr) rest
+  | isDigit c = Token (NUMBER num) (show num) linenr pos : scanner (linenr) (pos + (length $ show num)) rest
   -- identifiers and reserved words
-  | isAlpha c = Token (tokType) lexeme linenr : scanner (linenr) tokRest
+  | isAlpha c = Token (tokType) lexeme linenr pos : scanner (linenr) (pos + (length lexeme)) tokRest
   -- unknown character leads to error
-  | otherwise = Token (ERROR $ concat ["Unknown character: ", show c, " on line ", show linenr]) "" linenr : scanner linenr xs
+  | otherwise = Token (ERROR $ concat ["Unknown character: ", show c, " on line ", show linenr]) "" linenr pos : scanner linenr pos xs
   where (num,rest) = numberLiteral (c:xs)
         (tokType,lexeme,tokRest) = identifier (c:xs)
 
