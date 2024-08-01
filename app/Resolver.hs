@@ -14,7 +14,7 @@ resolve previousLocals stmts = do
   case result of
     (Right _, finalState) -> return $ Right $ resolverLocals finalState
     (Left err, _finalState) -> return $ Left err
-  where initialState = ResolverState [] previousLocals -- no scopes and locals from args
+  where initialState = ResolverState [] previousLocals None -- no scopes, locals from args and not in any function
 
 runResolver :: ResolverState -> Resolver a -> IO (Either ResolverError a, ResolverState)
 runResolver st r = runStateT (runExceptT r) st
@@ -35,12 +35,15 @@ resolveStatement (VariableDeclaration token maybeInitializer) = do
 resolveStatement (ExprStatement expr) = resolveExpression expr
 resolveStatement (PrintStatement expr) = resolveExpression expr
 resolveStatement (FunctionDeclaration tok params body) = do
+  enclosingFunction <- gets currentFunction -- stash the current function type in this var for now
+  modify $ \s -> s { currentFunction = Function } -- then update current function type to "Function"
   declare $ lexeme tok
   define $ lexeme tok
   beginScope
   mapM_ (\param -> declare (lexeme param) >> define (lexeme param)) params
   resolveStatement body
   endScope
+  modify $ \s -> s { currentFunction = enclosingFunction } -- restore old value
 resolveStatement (IfStatement condition trueBranch falseBranch) = do
   resolveExpression condition
   resolveStatement trueBranch
@@ -48,7 +51,11 @@ resolveStatement (IfStatement condition trueBranch falseBranch) = do
 resolveStatement (WhileStatement condition body) = do
   resolveExpression condition
   resolveStatement body
-resolveStatement (ReturnStatement expr) = resolveExpression expr
+resolveStatement (ReturnStatement expr) = do
+  currentFunctionType <- gets currentFunction
+  case currentFunctionType of
+    None -> throwError . ResolverError $ "Can't return from top-level code." -- can only `return` from functions
+    Function -> resolveExpression expr
 resolveStatement (EmptyStatement) = return ()
 
 resolveExpression :: Expression -> Resolver ()
