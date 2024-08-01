@@ -69,7 +69,7 @@ run context input = do
     Right stmts -> do
       resolverResult <- resolve M.empty stmts
       case resolverResult of
-        Left _ -> Prelude.error "borp"
+        Left err -> print err >> return context
         Right newlocals -> do
           let startState = (interpreterState context) { locals = newlocals }
           newState <- interpret startState stmts
