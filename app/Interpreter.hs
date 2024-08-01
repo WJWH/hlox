@@ -204,7 +204,7 @@ assignVariable ass nameToken exprVal = do
       setResult <- setVar (lexeme nameToken) exprVal globalVars
       case setResult of
         Nothing -> throwError . RuntimeError $ "Undefined variable write: '" ++ (lexeme nameToken) ++ "'."
-        Just var -> return exprVal
+        Just _var -> return exprVal
     Just depth -> do
       setVarAt depth (lexeme nameToken) exprVal
 
