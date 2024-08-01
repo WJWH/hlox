@@ -1,0 +1,5 @@
+// not allowed, variable shadowing is only legal in the global scope
+fun bad() {
+  var a = "first";
+  var a = "second";
+}
