@@ -1,13 +1,15 @@
 module Main where
 
+import qualified Data.Map as M
 import System.Environment
 import System.Exit
 import System.IO
 import Text.Parsec hiding (tokens)
 
-import Scanner
-import Parser
 import Interpreter
+import Parser
+import Resolver
+import Scanner
 import Types
 
 data InterpreterContext = Context { hadError :: Bool, interpreterState :: InterpreterState } deriving (Eq) -- for now, to make it compile
@@ -16,7 +18,7 @@ instance Show InterpreterContext where
 
 emptyContext :: IO InterpreterContext
 emptyContext = do
-  newIS <- newInterpreterState
+  newIS <- newInterpreterState M.empty
   return $ Context False newIS
 
 main :: IO ()
@@ -65,8 +67,13 @@ run context input = do
       print err
       return $ context { hadError = True }
     Right stmts -> do
-      newState <- interpret (interpreterState context) stmts
-      return $ context { interpreterState = newState }
+      resolverResult <- resolve M.empty stmts
+      case resolverResult of
+        Left _ -> Prelude.error "borp"
+        Right newlocals -> do
+          let startState = (interpreterState context) { locals = newlocals }
+          newState <- interpret startState stmts
+          return $ context { interpreterState = newState }
 
 error :: Int -> String -> IO ()
 error linenr message = report linenr "" message
