@@ -48,7 +48,7 @@ data TokenType = LEFT_PAREN -- single character tokens
                | ERROR String -- Special case for reporting errors
                deriving (Show,Eq,Ord)
 
-data Token = Token { tokenType :: TokenType, lexeme :: String, line :: Int } deriving (Show,Eq,Ord)
+data Token = Token { tokenType :: TokenType, lexeme :: String, line :: Int, posOnLine :: Int } deriving (Show,Eq,Ord)
 
 -- Parser related types
 data UnaryOperation = Negate | Bang deriving (Show,Eq,Ord)
