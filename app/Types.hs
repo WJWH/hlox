@@ -129,6 +129,8 @@ type Resolver = ExceptT ResolverError (StateT ResolverState IO)
 data ResolverError = ResolverError String deriving (Show,Eq)
 data ResolverState = ResolverState { scopes :: [Scope]
                                    , resolverLocals :: Locals
+                                   , currentFunction :: FunctionType
                                    } deriving (Show,Eq)
 type Scope = M.Map String Bool
 type Locals = M.Map Expression Int
+data FunctionType = None | Function deriving (Show,Eq)
