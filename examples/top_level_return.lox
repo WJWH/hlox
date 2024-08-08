@@ -1,0 +1,2 @@
+// return is only allowed in function bodies
+return "not allowed";
