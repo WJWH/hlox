@@ -81,6 +81,7 @@ data Statement = ExprStatement Expression
                | WhileStatement Expression Statement
                | EmptyStatement
                | ReturnStatement Expression
+               | ClassDeclaration Token [Statement] -- Token for the name, and a list of methods
                deriving (Show,Eq)
 
 -- Types for the interpreter
