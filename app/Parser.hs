@@ -287,6 +287,25 @@ funDeclaration = do
   body <- blockStatement
   return $ FunctionDeclaration (varToToken nameToken) (map varToToken args) body
 
+-- like function declarations, but without the "fun" keyword. Used in class declarations
+methodDeclaration :: TokenParser Statement
+methodDeclaration = do
+  nameToken <- identifier <?> "function name"
+  matchToken LEFT_PAREN
+  args <- identifier `sepBy` matchToken COMMA
+  matchToken RIGHT_PAREN
+  body <- blockStatement
+  return $ FunctionDeclaration (varToToken nameToken) (map varToToken args) body
+
+classDeclaration :: TokenParser Statement
+classDeclaration = do
+  matchToken CLASS
+  nameToken <- identifier <?> "function name"
+  matchToken LEFT_BRACE
+  methods <- many methodDeclaration
+  matchToken RIGHT_BRACE
+  return $ ClassDeclaration (varToToken nameToken) methods
+
 declaration :: TokenParser Statement
 declaration = funDeclaration <|> varDeclaration <|> statement
 
