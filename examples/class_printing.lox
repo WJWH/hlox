@@ -5,3 +5,4 @@ class DevonshireCream {
 }
 
 print DevonshireCream; // Prints "DevonshireCream".
+print DevonshireCream(); // Prints "instance: class: DevonshireCream".
