@@ -56,7 +56,7 @@ resolveStatement (ReturnStatement expr) = do
   case currentFunctionType of
     None -> throwError . ResolverError $ "Can't return from top-level code." -- can only `return` from functions
     Function -> resolveExpression expr
-resolveStatement (ClassDeclaration nameToken methods) = do
+resolveStatement (ClassDeclaration nameToken _methods) = do
   declare (lexeme nameToken)
   define (lexeme nameToken)
 resolveStatement (EmptyStatement) = return ()
