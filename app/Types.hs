@@ -92,6 +92,7 @@ data RuntimeValue = Number Double
                   | LoxFunction Int String [String] Statement Env -- arity, name, arg names, body, closure
                   | NativeFunction Int String ([RuntimeValue] -> Interpreter RuntimeValue) -- arity, name, some code block to run
                   | LoxClass String
+                  | LoxInstance RuntimeValue -- class type
 
 instance Show RuntimeValue where
   show (Number num) = show num
@@ -101,6 +102,7 @@ instance Show RuntimeValue where
   show (LoxFunction _ name _ _ _) = "<user defined function" ++ name ++ ">"
   show (NativeFunction _ name _) = "<native function" ++ name ++ ">"
   show (LoxClass name) = "<Class " ++ name ++ ">"
+  show (LoxInstance name) = "<Instance of" ++ (show name) ++ ">"
 
 instance Eq RuntimeValue where
   (==) (Number num1) (Number num2) = num1 == num2
@@ -110,6 +112,7 @@ instance Eq RuntimeValue where
   (==) (LoxFunction _ _ _ _ _) (LoxFunction _ _ _ _ _) = False -- functions cannot be equal-ed
   (==) (NativeFunction _ _ _) (NativeFunction _ _ _) = False
   (==) (LoxClass name1) (LoxClass name2) = name1 == name2
+  (==) (LoxInstance name1) (LoxInstance name2) = name1 == name2 -- Surely not correct, but OK for now
   (==) _ _ = False -- type mismatch
 
 -- Inspired by https://github.com/ccntrq/loxomotive/blob/master/src/Loxomotive/Interpreter.hs,
