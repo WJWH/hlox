@@ -307,7 +307,7 @@ classDeclaration = do
   return $ ClassDeclaration (varToToken nameToken) methods
 
 declaration :: TokenParser Statement
-declaration = funDeclaration <|> varDeclaration <|> statement
+declaration = funDeclaration <|> varDeclaration <|> classDeclaration <|> statement
 
 program :: TokenParser [Statement]
 program = do
