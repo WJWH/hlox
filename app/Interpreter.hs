@@ -64,6 +64,9 @@ execute (FunctionDeclaration nameToken args body) = do
   -- By the time we get here, keeping the entire token is no longer required I think?
   let fn = LoxFunction (length args) (lexeme nameToken) (map lexeme args) body closure
   defineVar (lexeme nameToken) fn
+execute (ClassDeclaration nameToken _methods) = do
+  let klass = LoxClass (lexeme nameToken)
+  defineVar (lexeme nameToken) klass
 execute (ReturnStatement expr) = do
   exprVal <- evaluate expr
   throwError $ ReturnValue exprVal
@@ -220,6 +223,7 @@ stringify Null = "nil"
 stringify (Boolean b) = show b
 stringify (NativeFunction _ name _) = "native function: " ++ name
 stringify (LoxFunction _ name _ _ _) = "function: " ++ name
+stringify (LoxClass name) = "class: " ++ name
 stringify (Number num) = fixedNum
   where fixedNum = if take 2 (reverse shownNum) == "0." then init . init $ shownNum else shownNum
         shownNum = show num
