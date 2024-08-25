@@ -139,6 +139,16 @@ evaluate (Call callee _tok args) = do
     lf@(LoxFunction _ _ _ _ _) -> call lf argsVals
     cl@(LoxClass _) -> call cl argsVals
     _ -> throwError $ RuntimeError "Can only call functions and classes."
+evaluate (Get callee (Variable property) tok) = do
+  object <- evaluate callee
+
+  case object of
+    LoxInstance klass fields -> case M.lookup (lexeme property) fields of
+      Nothing -> throwError $ RuntimeError $ concat ["Undefined property ", lexeme property, "."]
+      Just val -> return val
+    _ -> throwError $ RuntimeError "Only instances have properties."
+evaluate (Get callee _ tok) = do
+  throwError $ RuntimeError "Should never happen: get expression was called with a non-variable property value."
 
 call :: RuntimeValue -> [RuntimeValue] -> Interpreter RuntimeValue
 call (NativeFunction _arity _name code) args = do
@@ -175,7 +185,7 @@ call (LoxFunction arity name argNames body closure) args = do
          result
 call cl@(LoxClass name) args = do
   when (length args > 0) $ throwError $ RuntimeError ("wrong arity for class instantiation of class " ++ name)
-  return $ LoxInstance cl
+  return $ LoxInstance cl M.empty -- fields start out empty (?)
 call _ _ = throwError $ RuntimeError "Called 'call' with non-function argument (should be impossible)"
 
 -- Utility functions
@@ -228,7 +238,7 @@ stringify (Boolean b) = show b
 stringify (NativeFunction _ name _) = "native function: " ++ name
 stringify (LoxFunction _ name _ _ _) = "function: " ++ name
 stringify (LoxClass name) = "class: " ++ name
-stringify (LoxInstance klass) = "instance: " ++ stringify klass
+stringify (LoxInstance klass _fields) = "instance: " ++ stringify klass
 stringify (Number num) = fixedNum
   where fixedNum = if take 2 (reverse shownNum) == "0." then init . init $ shownNum else shownNum
         shownNum = show num
