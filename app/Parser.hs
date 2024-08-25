@@ -134,13 +134,24 @@ unary = do
 call :: TokenParser Expression
 call = do
   prim <- primary
-  calls <- many $ do
-    matchToken LEFT_PAREN
-    args <- expression `sepBy` matchToken COMMA -- conveniently also handles case with zero arguments
-    when ((length args) >= 255) $ fail "Can't have more than 255 arguments."
-    endParen <- matchToken RIGHT_PAREN
-    return $ (args,endParen)
+  calls <- many $ callArgs <|> get
   return $ foldCalls prim calls
+
+data CallConstructor = CallConstructor [Expression] Token | GetConstructor Expression Token deriving (Show,Eq)
+
+callArgs :: TokenParser CallConstructor
+callArgs = do
+  matchToken LEFT_PAREN
+  args <- expression `sepBy` matchToken COMMA -- conveniently also handles case with zero arguments
+  when ((length args) >= 255) $ fail "Can't have more than 255 arguments."
+  endParen <- matchToken RIGHT_PAREN
+  return $ CallConstructor args endParen
+
+get ::  TokenParser CallConstructor
+get = do
+  dot <- matchToken DOT
+  expr <- identifier
+  return $ GetConstructor expr dot
 
 assignment :: TokenParser Expression
 assignment = do
@@ -168,9 +179,11 @@ foldUnaryOps callExpr [] = callExpr
 -- note this should go "inside out" while the binary one goes the other way
 foldUnaryOps callExpr (op:ops) = Unary op (foldUnaryOps callExpr ops)
 
-foldCalls :: Expression -> [([Expression],Token)] -> Expression
+foldCalls :: Expression -> [CallConstructor] -> Expression
 foldCalls callee [] = callee
-foldCalls callee ((args,tok):ops) = foldCalls (Call callee tok args) ops
+-- foldCalls callee ((args,tok):ops) = foldCalls (Call callee tok args) ops
+foldCalls callee ((CallConstructor args tok):ops) = foldCalls (Call callee tok args) ops
+foldCalls callee ((GetConstructor expr tok):ops) = foldCalls (Get callee expr tok) ops
 
 -- The stack that defines operator precedence
 expression :: TokenParser Expression
