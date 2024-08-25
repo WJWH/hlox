@@ -86,6 +86,7 @@ resolveExpression (Logical _op left right) = resolveExpression left >> resolveEx
 resolveExpression (Call calleeExpr _tok argExprs) = do
   resolveExpression calleeExpr
   mapM_ resolveExpression argExprs
+resolveExpression (Get calleeExpr _property _tok) = resolveExpression calleeExpr -- property lookup is dynamic so properties don't get statically resolved
 
 -- puts an entry in the "locals" map if the variable can actually be found in one of
 -- the scopes.
