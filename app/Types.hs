@@ -70,6 +70,7 @@ data Expression = Grouping Expression
                 | Assignment Token Expression
                 | Logical LogicalOperation Expression Expression
                 | Call Expression Token [Expression]
+                | Get Expression Expression Token -- callee, property, name token
                 deriving (Show,Eq,Ord)
 
 data Statement = ExprStatement Expression
