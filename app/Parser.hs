@@ -160,6 +160,7 @@ assignment = do
   value <- expression
   case expr of
     Variable str -> return $ Assignment str value
+    Get callee property tok -> return $ Set callee property tok value
     _ -> unexpected "Invalid assignment target" -- needs better reporting?
 
 primary :: TokenParser Expression
