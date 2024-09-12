@@ -141,14 +141,22 @@ evaluate (Call callee _tok args) = do
     _ -> throwError $ RuntimeError "Can only call functions and classes."
 evaluate (Get callee (Variable property) tok) = do
   object <- evaluate callee
-
   case object of
     LoxInstance klass fields -> case M.lookup (lexeme property) fields of
       Nothing -> throwError $ RuntimeError $ concat ["Undefined property ", lexeme property, "."]
       Just val -> return val
-    _ -> throwError $ RuntimeError "Only instances have properties."
+    _ -> throwError $ RuntimeError "Only instances have fields."
 evaluate (Get callee _ tok) = do
   throwError $ RuntimeError "Should never happen: get expression was called with a non-variable property value."
+evaluate (Set callee property tok valueExpr) = do
+  object <- evaluate callee
+  case object of
+  LoxInstance klass fields -> do
+    value <- evaluate valueExpr
+    -- Nu nog bepalen hoe de field daadwerkelijk te setten....
+    return value
+  _ -> throwError $ RuntimeError "Only instances have fields."
+
 
 call :: RuntimeValue -> [RuntimeValue] -> Interpreter RuntimeValue
 call (NativeFunction _arity _name code) args = do
