@@ -148,13 +148,17 @@ evaluate (Get callee (Variable property) _tok) = do
     _ -> throwError $ RuntimeError "Only instances have fields."
 evaluate (Get _ _ _) = do
   throwError $ RuntimeError "Should never happen: get expression was called with a non-variable property value."
-evaluate (Set callee property _tok valueExpr) = do
+evaluate (Set callee _property tok valueExpr) = do
   object <- evaluate callee
   case object of
-    LoxInstance _klass fields -> do
+    LoxInstance klass fields -> do
       value <- evaluate valueExpr
-      -- Nu nog bepalen hoe de field daadwerkelijk te setten....
-      return value
+      -- Update the fields
+      let newFields = M.insert (lexeme tok) value fields
+      -- Create a new LoxInstance
+      let newInstance = LoxInstance klass newFields
+      -- Now to stick it into the variables for this scope again?
+      assignVar (???????????) newInstance
     _ -> throwError $ RuntimeError "Only instances have fields."
 
 
