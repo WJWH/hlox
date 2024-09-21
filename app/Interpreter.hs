@@ -4,6 +4,7 @@ import Control.Monad
 import Control.Monad.Except
 import Control.Monad.State
 import qualified Data.Map as M
+import Data.IORef
 
 import Types
 import Environment
@@ -142,25 +143,24 @@ evaluate (Call callee _tok args) = do
 evaluate (Get callee (Variable property) _tok) = do
   object <- evaluate callee
   case object of
-    LoxInstance _klass fields -> case M.lookup (lexeme property) fields of
-      Nothing -> throwError $ RuntimeError $ concat ["Undefined property ", lexeme property, "."]
-      Just val -> return val
+    LoxInstance _klass fieldsRef -> do
+      fields <- liftIO $ readIORef fieldsRef
+      case M.lookup (lexeme property) fields of
+        Nothing -> throwError $ RuntimeError $ concat ["Undefined property ", lexeme property, "."]
+        Just val -> return val
     _ -> throwError $ RuntimeError "Only instances have fields."
 evaluate (Get _ _ _) = do
   throwError $ RuntimeError "Should never happen: get expression was called with a non-variable property value."
-evaluate (Set callee _property tok valueExpr) = do
+evaluate (Set callee (Variable property) _tok valueExpr) = do
   object <- evaluate callee
   case object of
-    LoxInstance klass fields -> do
+    LoxInstance _ fieldsRef -> do
       value <- evaluate valueExpr
-      -- Update the fields
-      let newFields = M.insert (lexeme tok) value fields
-      -- Create a new LoxInstance
-      let newInstance = LoxInstance klass newFields
-      -- Now to stick it into the variables for this scope again?
-      assignVar (???????????) newInstance
+      liftIO $ modifyIORef' fieldsRef $ M.insert (lexeme property) value
+      return value
     _ -> throwError $ RuntimeError "Only instances have fields."
-
+evaluate (Set _ _ _ _) = do
+  throwError $ RuntimeError "Should never happen: set expression was called with a non-variable property value."
 
 call :: RuntimeValue -> [RuntimeValue] -> Interpreter RuntimeValue
 call (NativeFunction _arity _name code) args = do
@@ -197,7 +197,8 @@ call (LoxFunction arity name argNames body closure) args = do
          result
 call cl@(LoxClass name) args = do
   when (length args > 0) $ throwError $ RuntimeError ("wrong arity for class instantiation of class " ++ name)
-  return $ LoxInstance cl M.empty -- fields start out empty (?)
+  fieldsRef <- liftIO $ newIORef M.empty
+  return $ LoxInstance cl fieldsRef -- fields start out empty (?)
 call _ _ = throwError $ RuntimeError "Called 'call' with non-function argument (should be impossible)"
 
 -- Utility functions
