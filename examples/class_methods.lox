@@ -1,0 +1,12 @@
+class Abi {
+  eat() {
+    print "Om nom nom!";
+  }
+
+  hello(who) {
+    print "Hello " + who;
+  }
+}
+
+Abi().eat(); // Prints "Om nom nom!".
+Abi().hello("borpums");
