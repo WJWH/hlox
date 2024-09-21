@@ -146,10 +146,12 @@ evaluate (Call callee _tok args) = do
 evaluate (Get callee (Variable property) _tok) = do
   object <- evaluate callee
   case object of
-    LoxInstance _klass fieldsRef -> do
+    LoxInstance klass fieldsRef -> do
       fields <- liftIO $ readIORef fieldsRef
       case M.lookup (lexeme property) fields of
-        Nothing -> throwError $ RuntimeError $ concat ["Undefined property ", lexeme property, "."]
+        Nothing -> case M.lookup (lexeme property) (classMethods klass) of
+          Just method -> return method
+          Nothing -> throwError $ RuntimeError $ concat ["Undefined property ", lexeme property, "."]
         Just val -> return val
     _ -> throwError $ RuntimeError "Only instances have fields."
 evaluate (Get _ _ _) = do

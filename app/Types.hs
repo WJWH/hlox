@@ -93,7 +93,7 @@ data RuntimeValue = Number Double
                   | Null
                   | LoxFunction Int String [String] Statement Env -- arity, name, arg names, body, closure
                   | NativeFunction Int String ([RuntimeValue] -> Interpreter RuntimeValue) -- arity, name, some code block to run
-                  | LoxClass String (M.Map String RuntimeValue) -- Class name and map (String -> LoxFunction) for the methods
+                  | LoxClass {className :: String, classMethods :: (M.Map String RuntimeValue) } -- Class name and map (String -> LoxFunction) for the methods
                   | LoxInstance RuntimeValue (IORef (M.Map String RuntimeValue)) -- class type and a mutable map for the fields
 
 instance Show RuntimeValue where
