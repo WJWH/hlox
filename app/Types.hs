@@ -94,7 +94,7 @@ data RuntimeValue = Number Double
                   | LoxFunction Int String [String] Statement Env -- arity, name, arg names, body, closure
                   | NativeFunction Int String ([RuntimeValue] -> Interpreter RuntimeValue) -- arity, name, some code block to run
                   | LoxClass String
-                  | LoxInstance RuntimeValue (M.Map String RuntimeValue) -- class type
+                  | LoxInstance RuntimeValue (IORef (M.Map String RuntimeValue)) -- class type and a mutable map for the fields
 
 instance Show RuntimeValue where
   show (Number num) = show num
