@@ -142,4 +142,4 @@ data ResolverState = ResolverState { scopes :: [Scope]
                                    } deriving (Show,Eq)
 type Scope = M.Map String Bool
 type Locals = M.Map Expression Int
-data FunctionType = None | Function deriving (Show,Eq)
+data FunctionType = None | Function | Method deriving (Show,Eq)
