@@ -5,6 +5,7 @@ import Control.Monad.Except
 import Control.Monad.State
 import qualified Data.Map as M
 import Data.IORef
+import Data.List (foldl')
 
 import Types
 import Environment
@@ -65,8 +66,10 @@ execute (FunctionDeclaration nameToken args body) = do
   -- By the time we get here, keeping the entire token is no longer required I think?
   let fn = LoxFunction (length args) (lexeme nameToken) (map lexeme args) body closure
   defineVar (lexeme nameToken) fn
-execute (ClassDeclaration nameToken _methods) = do
-  let klass = LoxClass (lexeme nameToken)
+execute (ClassDeclaration nameToken methods) = do
+  closure <- gets env -- all methods share the same env I think?
+  let classMethods = foldl' (\ms method -> methodDefine closure method ms) M.empty methods
+  let klass = LoxClass (lexeme nameToken) classMethods
   defineVar (lexeme nameToken) klass
 execute (ReturnStatement expr) = do
   exprVal <- evaluate expr
@@ -138,7 +141,7 @@ evaluate (Call callee _tok args) = do
   case calleeVal of
     nf@(NativeFunction _ _ _) -> call nf argsVals
     lf@(LoxFunction _ _ _ _ _) -> call lf argsVals
-    cl@(LoxClass _) -> call cl argsVals
+    cl@(LoxClass _ _) -> call cl argsVals
     _ -> throwError $ RuntimeError "Can only call functions and classes."
 evaluate (Get callee (Variable property) _tok) = do
   object <- evaluate callee
@@ -195,7 +198,7 @@ call (LoxFunction arity name argNames body closure) args = do
                     return Null
          )
          result
-call cl@(LoxClass name) args = do
+call cl@(LoxClass name _) args = do
   when (length args > 0) $ throwError $ RuntimeError ("wrong arity for class instantiation of class " ++ name)
   fieldsRef <- liftIO $ newIORef M.empty
   return $ LoxInstance cl fieldsRef -- fields start out empty (?)
@@ -210,6 +213,11 @@ isTruthy _ = True
 numVal :: RuntimeValue -> Double
 numVal (Number num) = num
 numVal _ = error "Unreachable, tried to call numVal on non-number runtime value"
+
+-- define methods during class declarations
+methodDefine :: Env -> Statement -> M.Map String RuntimeValue -> M.Map String RuntimeValue
+methodDefine env (FunctionDeclaration nameToken args stmt) ms  = M.insert (lexeme nameToken) (LoxFunction (length args) (lexeme nameToken) (map lexeme args) stmt env) ms
+methodDefine _ _ _ = error "Should never happen: methodDefine called with a non-method argument"
 
 lookupVariable :: Token -> Expression -> Interpreter RuntimeValue
 lookupVariable nameToken expr = do
@@ -250,7 +258,7 @@ stringify Null = "nil"
 stringify (Boolean b) = show b
 stringify (NativeFunction _ name _) = "native function: " ++ name
 stringify (LoxFunction _ name _ _ _) = "function: " ++ name
-stringify (LoxClass name) = "class: " ++ name
+stringify (LoxClass name _) = "class: " ++ name
 stringify (LoxInstance klass _fields) = "instance: " ++ stringify klass
 stringify (Number num) = fixedNum
   where fixedNum = if take 2 (reverse shownNum) == "0." then init . init $ shownNum else shownNum
