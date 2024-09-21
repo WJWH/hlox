@@ -258,7 +258,7 @@ stringify Null = "nil"
 stringify (Boolean b) = show b
 stringify (NativeFunction _ name _) = "native function: " ++ name
 stringify (LoxFunction _ name _ _ _) = "function: " ++ name
-stringify (LoxClass name _) = "class: " ++ name
+stringify (LoxClass name methods) = "class: " ++ name ++ " " ++ show (M.keys methods)
 stringify (LoxInstance klass _fields) = "instance: " ++ stringify klass
 stringify (Number num) = fixedNum
   where fixedNum = if take 2 (reverse shownNum) == "0." then init . init $ shownNum else shownNum
