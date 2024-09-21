@@ -34,16 +34,8 @@ resolveStatement (VariableDeclaration token maybeInitializer) = do
 
 resolveStatement (ExprStatement expr) = resolveExpression expr
 resolveStatement (PrintStatement expr) = resolveExpression expr
-resolveStatement (FunctionDeclaration tok params body) = do
-  enclosingFunction <- gets currentFunction -- stash the current function type in this var for now
-  modify $ \s -> s { currentFunction = Function } -- then update current function type to "Function"
-  declare $ lexeme tok
-  define $ lexeme tok
-  beginScope
-  mapM_ (\param -> declare (lexeme param) >> define (lexeme param)) params
-  resolveStatement body
-  endScope
-  modify $ \s -> s { currentFunction = enclosingFunction } -- restore old value
+resolveStatement fd@(FunctionDeclaration _ _ _) = do
+  resolveFunction fd Function
 resolveStatement (IfStatement condition trueBranch falseBranch) = do
   resolveExpression condition
   resolveStatement trueBranch
@@ -56,9 +48,12 @@ resolveStatement (ReturnStatement expr) = do
   case currentFunctionType of
     None -> throwError . ResolverError $ "Can't return from top-level code." -- can only `return` from functions
     Function -> resolveExpression expr
-resolveStatement (ClassDeclaration nameToken _methods) = do
+    Method -> resolveExpression expr
+resolveStatement (ClassDeclaration nameToken methods) = do
   declare (lexeme nameToken)
   define (lexeme nameToken)
+  -- declare all methods
+  forM_ methods $ \method -> resolveFunction method Method
 resolveStatement (EmptyStatement) = return ()
 
 resolveExpression :: Expression -> Resolver ()
@@ -103,6 +98,20 @@ resolveLocal expr varname = do
     Just depth -> do
       oldLocals <- gets resolverLocals
       modify $ \s -> s { resolverLocals = M.insert expr depth oldLocals }
+
+-- resolves a function or method call
+resolveFunction :: Statement -> FunctionType -> Resolver ()
+resolveFunction (FunctionDeclaration tok params body) funcType = do
+  enclosingFunction <- gets currentFunction -- stash the current function type in this var for now
+  modify $ \s -> s { currentFunction = funcType } -- then update current function type to the type from the args
+  declare $ lexeme tok
+  define $ lexeme tok
+  beginScope
+  mapM_ (\param -> declare (lexeme param) >> define (lexeme param)) params
+  resolveStatement body
+  endScope
+  modify $ \s -> s { currentFunction = enclosingFunction } -- restore old value
+resolveFunction _ _ = error "Should never happen: resolveFunction called with non-Function arg"
 
 -- Begins variable definition process
 declare :: String -> Resolver ()
