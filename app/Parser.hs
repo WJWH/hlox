@@ -46,6 +46,11 @@ matchLiteral = token show (const (initialPos "borp")) $ \tok -> case tokenType t
   STRING str -> Just $ StringLit str
   _ -> Nothing
 
+this :: TokenParser Expression
+this = do
+  tok <- matchToken THIS
+  return $ This tok
+
 literal :: TokenParser Expression
 literal = do
   litContents <- matchLiteral
@@ -164,7 +169,7 @@ assignment = do
     _ -> unexpected "Invalid assignment target" -- needs better reporting?
 
 primary :: TokenParser Expression
-primary = literal <|> identifier <|> grouping
+primary = this <|> literal <|> identifier <|> grouping
 
 -- some utility functions to handle expressions with multiple operators like 1+2+3+4 and !!abc
 foldBinaryOps :: Expression -> [(BinaryOperation, Expression)] -> Expression
