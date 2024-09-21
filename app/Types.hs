@@ -93,7 +93,7 @@ data RuntimeValue = Number Double
                   | Null
                   | LoxFunction Int String [String] Statement Env -- arity, name, arg names, body, closure
                   | NativeFunction Int String ([RuntimeValue] -> Interpreter RuntimeValue) -- arity, name, some code block to run
-                  | LoxClass String
+                  | LoxClass String (M.Map String RuntimeValue) -- Class name and map (String -> LoxFunction) for the methods
                   | LoxInstance RuntimeValue (IORef (M.Map String RuntimeValue)) -- class type and a mutable map for the fields
 
 instance Show RuntimeValue where
@@ -103,7 +103,7 @@ instance Show RuntimeValue where
   show Null = "null"
   show (LoxFunction _ name _ _ _) = "<user defined function" ++ name ++ ">"
   show (NativeFunction _ name _) = "<native function" ++ name ++ ">"
-  show (LoxClass name) = "<Class " ++ name ++ ">"
+  show (LoxClass name _) = "<Class " ++ name ++ ">"
   show (LoxInstance name _fields) = "<Instance of" ++ (show name) ++ ">"
 
 instance Eq RuntimeValue where
@@ -113,7 +113,7 @@ instance Eq RuntimeValue where
   (==) Null Null = True
   (==) (LoxFunction _ _ _ _ _) (LoxFunction _ _ _ _ _) = False -- functions cannot be equal-ed
   (==) (NativeFunction _ _ _) (NativeFunction _ _ _) = False
-  (==) (LoxClass name1) (LoxClass name2) = name1 == name2
+  (==) (LoxClass name1 _) (LoxClass name2 _) = name1 == name2
   (==) (LoxInstance name1 _fields1) (LoxInstance name2 _fields2) = name1 == name2 -- Surely not correct, but OK for now
   (==) _ _ = False -- type mismatch
 
