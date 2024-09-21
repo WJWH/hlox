@@ -1,0 +1,19 @@
+class DevonshireCream {
+  serveOn() {
+    return "Scones";
+  }
+}
+
+var a = DevonshireCream();
+print a;
+a.borp = 123;
+print a.borp;
+
+a.b = DevonshireCream();
+a.b.c = 321;
+print a.b.c;
+
+var newinstance = DevonshireCream();
+newinstance.c = 456;
+a.b = newinstance;
+print a.b.c;
