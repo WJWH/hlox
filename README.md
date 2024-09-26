@@ -23,4 +23,8 @@ This monad stack was chosen because:
 - `StateT` to keep state about variable bindings etc.
 - `IO` as base monad is required because the `PRINT` method is baked right into the language.
 
-So far it can only evaluate expressions, which are done in a very straightforward way by starting at the root of the AST and evaluating all its nodes recursively.
+The resolver uses much the same structure as the interpreter, but with its own types. Unlike the book where the resolver directly updates maps inside the interpreter, the map with locals get returned from the resolver and fed into the interpreter.
+
+## Currently working on
+
+I now have most things working including classes with attributes and method calls, next up will be making the `this` keyword work inside classes.
