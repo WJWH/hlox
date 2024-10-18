@@ -52,8 +52,13 @@ resolveStatement (ReturnStatement expr) = do
 resolveStatement (ClassDeclaration nameToken methods) = do
   declare (lexeme nameToken)
   define (lexeme nameToken)
+  beginScope -- uuuuuuuuuuuu does this conflict with the beginScope in defineFunction???
+  (currentScope:parentScopes) <- gets scopes
+  let thisScope = M.insert "this" True currentScope
+  modify $ \s -> s { scopes = (thisScope : parentScopes) }
   -- declare all methods
   forM_ methods $ \method -> resolveFunction method Method
+  endScope
 resolveStatement (EmptyStatement) = return ()
 
 resolveExpression :: Expression -> Resolver ()
@@ -83,6 +88,7 @@ resolveExpression (Call calleeExpr _tok argExprs) = do
   mapM_ resolveExpression argExprs
 resolveExpression (Get calleeExpr _property _tok) = resolveExpression calleeExpr -- property lookup is dynamic so properties don't get statically resolved
 resolveExpression (Set calleeExpr _property _tok value) = resolveExpression value >> resolveExpression calleeExpr
+resolveExpression expr@(This tok) = resolveLocal expr (lexeme tok)
 
 -- puts an entry in the "locals" map if the variable can actually be found in one of
 -- the scopes.
