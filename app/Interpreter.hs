@@ -166,6 +166,7 @@ evaluate (Set callee (Variable property) _tok valueExpr) = do
     _ -> throwError $ RuntimeError "Only instances have fields."
 evaluate (Set _ _ _ _) = do
   throwError $ RuntimeError "Should never happen: set expression was called with a non-variable property value."
+evaluate expr@(This nameToken) = lookupVariable nameToken expr
 
 call :: RuntimeValue -> [RuntimeValue] -> Interpreter RuntimeValue
 call (NativeFunction _arity _name code) args = do
