@@ -204,10 +204,20 @@ call (LoxFunction arity name argNames body closure) args = do
                     return Null
          )
          result
-call cl@(LoxClass name _) args = do
-  when (length args > 0) $ throwError $ RuntimeError ("wrong arity for class instantiation of class " ++ name)
+call cl@(LoxClass name methods) args = do
   fieldsRef <- liftIO $ newIORef M.empty
-  return $ LoxInstance cl fieldsRef -- fields start out empty (?)
+  -- does the class have an initializer?
+  case M.lookup "init" methods of
+    Nothing -> do
+      when (length args > 0) $ throwError $ RuntimeError ("wrong arity for class instantiation of class " ++ name)
+      return $ LoxInstance cl fieldsRef -- fields start out empty if there is no initializer
+    Just initializer@(LoxFunction arity _ _ _ _) -> do
+      when (length args /= arity) $ throwError $ RuntimeError ("wrong arity for class instantiation of class " ++ name)
+      let newInstance = LoxInstance cl fieldsRef
+      boundInitializer <- bind newInstance initializer -- so that `this` works inside the initializer
+      void $ call boundInitializer args -- might mutate newInstance
+      return newInstance
+    _ -> error "Should never happen: initializer of a class was somehow not a function"
 call _ _ = throwError $ RuntimeError "Called 'call' with non-function argument (should be impossible)"
 
 -- Utility functions
