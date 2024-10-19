@@ -9,6 +9,7 @@ import Data.Time.Clock.POSIX
 
 import Types
 
+-- making new Environments
 mkRootEnv :: IO Env
 mkRootEnv = do
   bindingsRef <- liftIO $ newIORef rootBindings
@@ -21,7 +22,7 @@ mkChildEnv parent = do
   bindingsRef <- liftIO $ newIORef M.empty
   return $ Env (Just parent) bindingsRef
 
--- setting and getting variables
+-- setting and getting variables in the Interpreter monad using the Env from its state
 defineVar :: String -> RuntimeValue -> Interpreter ()
 defineVar name value = do
   (Env _parent bindingsRef) <- gets env
@@ -60,6 +61,7 @@ setVarAt depth name val = do
   liftIO $ modifyIORef (bindings targetEnv) $ M.insert name val
   return val
 
+-- getting and setting variables in an Environment given in the arguments
 findVar :: String -> Env -> Interpreter (Maybe RuntimeValue)
 findVar name (Env parent bindingsRef) = do
   bindings <- liftIO $ readIORef bindingsRef
@@ -80,6 +82,12 @@ setVar name val (Env parent bindingsRef) = do
       Nothing -> return Nothing -- no parent available, so the var to update couldn't be found
       Just p -> setVar name val p -- maybe the parent has the var, recurse upward
 
+-- used for defining 'this' in the scope of class methods. Since it mutates the env in-place, no return
+-- value is needed
+defineVarRaw :: String -> RuntimeValue -> Env -> Interpreter ()
+defineVarRaw name val (Env _parent bindingsRef) = liftIO $ modifyIORef bindingsRef $ M.insert name val
+
+-- utility functions
 ancestor :: Int -> Env -> Interpreter Env
 ancestor 0 env = return $ env
 ancestor depth env = case parent env of
