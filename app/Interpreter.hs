@@ -146,13 +146,20 @@ evaluate (Call callee _tok args) = do
 evaluate (Get callee (Variable property) _tok) = do
   object <- evaluate callee
   case object of
-    LoxInstance klass fieldsRef -> do
+    loxInstance@(LoxInstance klass fieldsRef) -> do
+      -- first we check if the property is a field
       fields <- liftIO $ readIORef fieldsRef
       case M.lookup (lexeme property) fields of
-        Nothing -> case M.lookup (lexeme property) (classMethods klass) of
-          Just method -> return method
-          Nothing -> throwError $ RuntimeError $ concat ["Undefined property ", lexeme property, "."]
+        -- if we find a field with that name, just return that:
         Just val -> return val
+        -- perhaps it was not a field, maybe it's a method?
+        Nothing -> case M.lookup (lexeme property) (classMethods klass) of
+          Just (LoxFunction arity name args stmt closure) -> do
+            newClosure <- mkChildEnv closure
+            defineVarRaw "this" loxInstance newClosure
+            return (LoxFunction arity name args stmt newClosure)
+          Nothing -> throwError $ RuntimeError $ concat ["Undefined property ", lexeme property, "."]
+          _ -> error "Impossible happened: non-method found in class methods"
     _ -> throwError $ RuntimeError "Only instances have fields."
 evaluate (Get _ _ _) = do
   throwError $ RuntimeError "Should never happen: get expression was called with a non-variable property value."
