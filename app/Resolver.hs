@@ -14,7 +14,7 @@ resolve previousLocals stmts = do
   case result of
     (Right _, finalState) -> return $ Right $ resolverLocals finalState
     (Left err, _finalState) -> return $ Left err
-  where initialState = ResolverState [] previousLocals None -- no scopes, locals from args and not in any function
+  where initialState = ResolverState [] previousLocals None NoClass -- no scopes, locals from args, not in any function and not in any class
 
 runResolver :: ResolverState -> Resolver a -> IO (Either ResolverError a, ResolverState)
 runResolver st r = runStateT (runExceptT r) st
@@ -50,6 +50,8 @@ resolveStatement (ReturnStatement expr) = do
     Function -> resolveExpression expr
     Method -> resolveExpression expr
 resolveStatement (ClassDeclaration nameToken methods) = do
+  enclosingClass <- gets currentClass -- stash the current class type in this var for now
+  modify $ \s -> s { currentClass = InClass } -- then update current class type to the type from the args
   declare (lexeme nameToken)
   define (lexeme nameToken)
   beginScope -- uuuuuuuuuuuu does this conflict with the beginScope in defineFunction???
@@ -59,6 +61,7 @@ resolveStatement (ClassDeclaration nameToken methods) = do
   -- declare all methods
   forM_ methods $ \method -> resolveFunction method Method
   endScope
+  modify $ \s -> s { currentClass = enclosingClass }
 resolveStatement (EmptyStatement) = return ()
 
 resolveExpression :: Expression -> Resolver ()
@@ -88,7 +91,12 @@ resolveExpression (Call calleeExpr _tok argExprs) = do
   mapM_ resolveExpression argExprs
 resolveExpression (Get calleeExpr _property _tok) = resolveExpression calleeExpr -- property lookup is dynamic so properties don't get statically resolved
 resolveExpression (Set calleeExpr _property _tok value) = resolveExpression value >> resolveExpression calleeExpr
-resolveExpression expr@(This tok) = resolveLocal expr (lexeme tok)
+resolveExpression expr@(This tok) = do
+  currentClassType <- gets currentClass
+  case currentClassType of
+    NoClass -> throwError . ResolverError $ "Can't use `this` outside class definitions."
+    InClass -> resolveLocal expr (lexeme tok)
+
 
 -- puts an entry in the "locals" map if the variable can actually be found in one of
 -- the scopes.
