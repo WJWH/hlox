@@ -154,12 +154,8 @@ evaluate (Get callee (Variable property) _tok) = do
         Just val -> return val
         -- perhaps it was not a field, maybe it's a method?
         Nothing -> case M.lookup (lexeme property) (classMethods klass) of
-          Just (LoxFunction arity name args stmt closure) -> do
-            newClosure <- mkChildEnv closure
-            defineVarRaw "this" loxInstance newClosure
-            return (LoxFunction arity name args stmt newClosure)
+          Just method -> bind loxInstance method
           Nothing -> throwError $ RuntimeError $ concat ["Undefined property ", lexeme property, "."]
-          _ -> error "Impossible happened: non-method found in class methods"
     _ -> throwError $ RuntimeError "Only instances have fields."
 evaluate (Get _ _ _) = do
   throwError $ RuntimeError "Should never happen: get expression was called with a non-variable property value."
@@ -228,6 +224,16 @@ numVal _ = error "Unreachable, tried to call numVal on non-number runtime value"
 methodDefine :: Env -> Statement -> M.Map String RuntimeValue -> M.Map String RuntimeValue
 methodDefine env (FunctionDeclaration nameToken args stmt) ms  = M.insert (lexeme nameToken) (LoxFunction (length args) (lexeme nameToken) (map lexeme args) stmt env) ms
 methodDefine _ _ _ = error "Should never happen: methodDefine called with a non-method argument"
+
+-- bind method to make 'this' keyword functional
+-- actual type is bind :: LoxInstance -> LoxFunction -> Interpreter LoxFunction
+-- but we use the following because I would need more advanced type trickery
+bind :: RuntimeValue -> RuntimeValue -> Interpreter RuntimeValue
+bind loxInstance@(LoxInstance _ _) (LoxFunction arity name args stmt closure) = do
+  newClosure <- mkChildEnv closure
+  defineVarRaw "this" loxInstance newClosure
+  return (LoxFunction arity name args stmt newClosure)
+bind _ _ = error "Should never happen: bind called with wrong argument types"
 
 lookupVariable :: Token -> Expression -> Interpreter RuntimeValue
 lookupVariable nameToken expr = do
