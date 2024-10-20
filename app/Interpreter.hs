@@ -67,10 +67,17 @@ execute (FunctionDeclaration nameToken args body) = do
   -- "bare" functions are never initializers
   let fn = LoxFunction (length args) (lexeme nameToken) (map lexeme args) body closure False
   defineVar (lexeme nameToken) fn
-execute (ClassDeclaration nameToken methods) = do
+execute (ClassDeclaration nameToken maybeSuperclass methods) = do
   closure <- gets env -- all methods share the same env I think?
   let classMethods = foldl' (\ms method -> methodDefine closure method ms) M.empty methods
-  let klass = LoxClass (lexeme nameToken) classMethods
+  superclass <- case maybeSuperclass of
+    Nothing -> return $ Nothing
+    Just expr -> do
+      superObject <- evaluate expr
+      case superObject of
+        cl@(LoxClass _ _ _) -> return $ Just cl
+        _ -> throwError $ ArgumentError "Superclass must be a class!"
+  let klass = LoxClass (lexeme nameToken) superclass classMethods
   defineVar (lexeme nameToken) klass
 execute (ReturnStatement maybeExpr) = do
   case maybeExpr of
@@ -145,7 +152,7 @@ evaluate (Call callee _tok args) = do
   case calleeVal of
     nf@(NativeFunction _ _ _) -> call nf argsVals
     lf@(LoxFunction _ _ _ _ _ _) -> call lf argsVals
-    cl@(LoxClass _ _) -> call cl argsVals
+    cl@(LoxClass _ _ _) -> call cl argsVals
     _ -> throwError $ RuntimeError "Can only call functions and classes."
 evaluate (Get callee (Variable property) _tok) = do
   object <- evaluate callee
@@ -157,7 +164,8 @@ evaluate (Get callee (Variable property) _tok) = do
         -- if we find a field with that name, just return that:
         Just val -> return val
         -- perhaps it was not a field, maybe it's a method?
-        Nothing -> case M.lookup (lexeme property) (classMethods klass) of
+        -- Nothing -> case M.lookup (lexeme property) (classMethods klass) of
+        Nothing -> case findMethod (lexeme property) klass of
           Just method -> bind loxInstance method
           Nothing -> throwError $ RuntimeError $ concat ["Undefined property ", lexeme property, "."]
     _ -> throwError $ RuntimeError "Only instances have fields."
@@ -221,7 +229,7 @@ call (LoxFunction arity name argNames body closure isInitializer) args = do
                       else return Null
          )
          result
-call cl@(LoxClass name methods) args = do
+call cl@(LoxClass name _superclass methods) args = do
   fieldsRef <- liftIO $ newIORef M.empty
   -- does the class have an initializer?
   case M.lookup "init" methods of
@@ -246,6 +254,15 @@ isTruthy _ = True
 numVal :: RuntimeValue -> Double
 numVal (Number num) = num
 numVal _ = error "Unreachable, tried to call numVal on non-number runtime value"
+
+-- find the method in the given class or any of its superclasses
+findMethod :: String -> RuntimeValue -> Maybe RuntimeValue
+findMethod name (LoxClass _ maybeSuperclass methods) = case M.lookup name methods of
+  Just method -> Just method
+  Nothing -> case maybeSuperclass of
+    Nothing -> Nothing
+    Just superclass -> findMethod name superclass
+findMethod _ _ = error "Should never happen: findMethod was called on a non-class RuntimeValue"
 
 -- define methods during class declarations
 methodDefine :: Env -> Statement -> M.Map String RuntimeValue -> M.Map String RuntimeValue
@@ -304,7 +321,7 @@ stringify Null = "nil"
 stringify (Boolean b) = show b
 stringify (NativeFunction _ name _) = "native function: " ++ name
 stringify (LoxFunction _ name _ _ _ _) = "function: " ++ name
-stringify (LoxClass name methods) = "class: " ++ name ++ " " ++ show (M.keys methods)
+stringify (LoxClass name _superclass methods) = "class: " ++ name ++ " " ++ show (M.keys methods)
 stringify (LoxInstance klass _fields) = "instance: " ++ stringify klass
 stringify (Number num) = fixedNum
   where fixedNum = if take 2 (reverse shownNum) == "0." then init . init $ shownNum else shownNum
