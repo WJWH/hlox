@@ -1,0 +1,19 @@
+class Foo {
+  init(arg1, arg2) {
+    this.argument = arg1;
+    print arg2;
+  }
+
+  hello() {
+    print "hello";
+  }
+
+  showArgument() {
+    print this.argument;
+  }
+}
+
+var x = Foo("abc",123);
+print x;
+x.hello();
+x.showArgument();
