@@ -1,0 +1,7 @@
+fun borp() {
+  print "abc";
+  return;
+  print "will not be printed";
+}
+
+print borp(); // should print Null
