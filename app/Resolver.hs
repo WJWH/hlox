@@ -54,11 +54,16 @@ resolveStatement (ReturnStatement maybeExpr) = do
       Function -> resolveExpression expr
       Method -> resolveExpression expr
       Initializer -> throwError . ResolverError $ "Can't return value from initializer code." -- only empty return in initializers
-resolveStatement (ClassDeclaration nameToken methods) = do
+resolveStatement (ClassDeclaration nameToken maybeSuperclass methods) = do
   enclosingClass <- gets currentClass -- stash the current class type in this var for now
   modify $ \s -> s { currentClass = InClass } -- then update current class type to the type from the args
   declare (lexeme nameToken)
   define (lexeme nameToken)
+  case maybeSuperclass of
+    Nothing -> return ()
+    Just superclass -> do
+      when ((lexeme nameToken) == (lexeme $ varToToken superclass)) $ throwError . ResolverError $ "A class can't inherit from itself."
+      resolveExpression superclass
   beginScope -- uuuuuuuuuuuu does this conflict with the beginScope in defineFunction???
   (currentScope:parentScopes) <- gets scopes
   let thisScope = M.insert "this" True currentScope
@@ -176,3 +181,7 @@ findDepth (scope:parentScopes) varname = case M.lookup varname scope of
 nameFromFunction :: Statement -> String
 nameFromFunction (FunctionDeclaration nameToken _params _body) = lexeme nameToken
 nameFromFunction _ = error "nameFromFunction: tried to find name of non-function"
+
+varToToken :: Expression -> Token
+varToToken (Variable tok) = tok
+varToToken _ = error "Unreachable, tried to call varName on non-variable runtime value"
