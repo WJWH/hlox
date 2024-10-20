@@ -64,6 +64,7 @@ execute EmptyStatement = return () -- basically a NOP, only used for for loops
 execute (FunctionDeclaration nameToken args body) = do
   closure <- gets env
   -- By the time we get here, keeping the entire token is no longer required I think?
+  -- "bare" functions are never initializers
   let fn = LoxFunction (length args) (lexeme nameToken) (map lexeme args) body closure False
   defineVar (lexeme nameToken) fn
 execute (ClassDeclaration nameToken methods) = do
@@ -200,8 +201,15 @@ call (LoxFunction arity name argNames body closure isInitializer) args = do
          (\_res -> do
                     -- the case where a value is returned was handled above in the error branch, but
                     -- if the function completed without any return value we still have to return
-                    -- something, in this case Null
-                    return Null
+                    -- something, in this case Null. Special case: an initializer always returns `this`
+                    -- instead of Null
+                    if isInitializer
+                      then do
+                        maybeThis <- findVar "this" closure
+                        case maybeThis of
+                          Just this -> return this
+                          Nothing -> throwError $ RuntimeError "Should never happen: Could not find `this` variable in initializer env."
+                      else return Null
          )
          result
 call cl@(LoxClass name methods) args = do
@@ -232,7 +240,10 @@ numVal _ = error "Unreachable, tried to call numVal on non-number runtime value"
 
 -- define methods during class declarations
 methodDefine :: Env -> Statement -> M.Map String RuntimeValue -> M.Map String RuntimeValue
-methodDefine env (FunctionDeclaration nameToken args stmt) ms  = M.insert (lexeme nameToken) (LoxFunction (length args) (lexeme nameToken) (map lexeme args) stmt env) ms
+methodDefine env (FunctionDeclaration nameToken args stmt) ms  = M.insert name newFunction ms
+  where newFunction = LoxFunction (length args) name (map lexeme args) stmt env isInitializer
+        isInitializer = name == "init"
+        name = lexeme nameToken
 methodDefine _ _ _ = error "Should never happen: methodDefine called with a non-method argument"
 
 -- bind method to make 'this' keyword functional
