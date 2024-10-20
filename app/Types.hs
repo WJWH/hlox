@@ -83,7 +83,7 @@ data Statement = ExprStatement Expression
                | IfStatement Expression Statement (Maybe Statement)
                | WhileStatement Expression Statement
                | EmptyStatement
-               | ReturnStatement Expression
+               | ReturnStatement (Maybe Expression)
                | ClassDeclaration Token [Statement] -- Token for the name, and a list of methods
                deriving (Show,Eq)
 
@@ -144,5 +144,5 @@ data ResolverState = ResolverState { scopes :: [Scope]
                                    } deriving (Show,Eq)
 type Scope = M.Map String Bool
 type Locals = M.Map Expression Int
-data FunctionType = None | Function | Method deriving (Show,Eq)
+data FunctionType = None | Function | Method | Initializer deriving (Show,Eq)
 data ClassType = NoClass | InClass deriving (Show,Eq)
