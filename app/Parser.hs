@@ -210,7 +210,7 @@ factor = binaryGrammarRule unary divideMultiplyOperator
 returnStatement :: TokenParser Statement
 returnStatement = do
   matchToken RETURN
-  expr <- expression
+  expr <- option Nothing (Just <$> expression)
   matchToken SEMICOLON <?> "semicolon at end of return statement"
   return $ ReturnStatement expr
 
