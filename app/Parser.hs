@@ -320,10 +320,14 @@ classDeclaration :: TokenParser Statement
 classDeclaration = do
   matchToken CLASS
   nameToken <- identifier <?> "function name"
+  superclassToken <- option Nothing $ do
+    matchToken LESS
+    superclass <- identifier
+    return . Just $ superclass
   matchToken LEFT_BRACE
   methods <- many methodDeclaration
   matchToken RIGHT_BRACE
-  return $ ClassDeclaration (varToToken nameToken) methods
+  return $ ClassDeclaration (varToToken nameToken) superclassToken methods
 
 declaration :: TokenParser Statement
 declaration = funDeclaration <|> varDeclaration <|> classDeclaration <|> statement
