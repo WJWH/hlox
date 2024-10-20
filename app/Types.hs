@@ -92,7 +92,7 @@ data RuntimeValue = Number Double
                   | String String
                   | Boolean Bool
                   | Null
-                  | LoxFunction Int String [String] Statement Env -- arity, name, arg names, body, closure
+                  | LoxFunction Int String [String] Statement Env Bool -- arity, name, arg names, body, closure, isInitializer
                   | NativeFunction Int String ([RuntimeValue] -> Interpreter RuntimeValue) -- arity, name, some code block to run
                   | LoxClass {className :: String, classMethods :: (M.Map String RuntimeValue) } -- Class name and map (String -> LoxFunction) for the methods
                   | LoxInstance RuntimeValue (IORef (M.Map String RuntimeValue)) -- class type and a mutable map for the fields
@@ -102,7 +102,7 @@ instance Show RuntimeValue where
   show (String str) = str
   show (Boolean b) = show b
   show Null = "null"
-  show (LoxFunction _ name _ _ _) = "<user defined function" ++ name ++ ">"
+  show (LoxFunction _ name _ _ _ _) = "<user defined function" ++ name ++ ">"
   show (NativeFunction _ name _) = "<native function" ++ name ++ ">"
   show (LoxClass name _) = "<Class " ++ name ++ ">"
   show (LoxInstance name _fields) = "<Instance of" ++ (show name) ++ ">"
@@ -112,7 +112,7 @@ instance Eq RuntimeValue where
   (==) (String str1) (String str2) = str1 == str2
   (==) (Boolean b1) (Boolean b2) = b1 == b2
   (==) Null Null = True
-  (==) (LoxFunction _ _ _ _ _) (LoxFunction _ _ _ _ _) = False -- functions cannot be equal-ed
+  (==) (LoxFunction _ _ _ _ _ _) (LoxFunction _ _ _ _ _ _) = False -- functions cannot be equal-ed
   (==) (NativeFunction _ _ _) (NativeFunction _ _ _) = False
   (==) (LoxClass name1 _) (LoxClass name2 _) = name1 == name2
   (==) (LoxInstance name1 _fields1) (LoxInstance name2 _fields2) = name1 == name2 -- Surely not correct, but OK for now

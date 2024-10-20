@@ -64,7 +64,7 @@ execute EmptyStatement = return () -- basically a NOP, only used for for loops
 execute (FunctionDeclaration nameToken args body) = do
   closure <- gets env
   -- By the time we get here, keeping the entire token is no longer required I think?
-  let fn = LoxFunction (length args) (lexeme nameToken) (map lexeme args) body closure
+  let fn = LoxFunction (length args) (lexeme nameToken) (map lexeme args) body closure False
   defineVar (lexeme nameToken) fn
 execute (ClassDeclaration nameToken methods) = do
   closure <- gets env -- all methods share the same env I think?
@@ -140,7 +140,7 @@ evaluate (Call callee _tok args) = do
   argsVals <- mapM evaluate args
   case calleeVal of
     nf@(NativeFunction _ _ _) -> call nf argsVals
-    lf@(LoxFunction _ _ _ _ _) -> call lf argsVals
+    lf@(LoxFunction _ _ _ _ _ _) -> call lf argsVals
     cl@(LoxClass _ _) -> call cl argsVals
     _ -> throwError $ RuntimeError "Can only call functions and classes."
 evaluate (Get callee (Variable property) _tok) = do
@@ -176,7 +176,7 @@ call (NativeFunction _arity _name code) args = do
   code args -- but how about the args?? Will I need a separate one for that?
   -- idea: all the args they take MUST be RuntimeValues, so perhaps I can make them all
   -- take a single argument of type [RuntimeValue]?
-call (LoxFunction arity name argNames body closure) args = do
+call (LoxFunction arity name argNames body closure isInitializer) args = do
   when (arity /= length args) $ throwError $ RuntimeError ("wrong arity for function " ++ name)
   currentState <- get
   -- the interpreter state for the block is the same as for the parent scope, but with a fresh child env
@@ -211,7 +211,7 @@ call cl@(LoxClass name methods) args = do
     Nothing -> do
       when (length args > 0) $ throwError $ RuntimeError ("wrong arity for class instantiation of class " ++ name)
       return $ LoxInstance cl fieldsRef -- fields start out empty if there is no initializer
-    Just initializer@(LoxFunction arity _ _ _ _) -> do
+    Just initializer@(LoxFunction arity _ _ _ _ _) -> do
       when (length args /= arity) $ throwError $ RuntimeError ("wrong arity for class instantiation of class " ++ name)
       let newInstance = LoxInstance cl fieldsRef
       boundInitializer <- bind newInstance initializer -- so that `this` works inside the initializer
@@ -239,10 +239,10 @@ methodDefine _ _ _ = error "Should never happen: methodDefine called with a non-
 -- actual type is bind :: LoxInstance -> LoxFunction -> Interpreter LoxFunction
 -- but we use the following because I would need more advanced type trickery
 bind :: RuntimeValue -> RuntimeValue -> Interpreter RuntimeValue
-bind loxInstance@(LoxInstance _ _) (LoxFunction arity name args stmt closure) = do
+bind loxInstance@(LoxInstance _ _) (LoxFunction arity name args stmt closure isInitializer) = do
   newClosure <- mkChildEnv closure
   defineVarRaw "this" loxInstance newClosure
-  return (LoxFunction arity name args stmt newClosure)
+  return (LoxFunction arity name args stmt newClosure isInitializer)
 bind _ _ = error "Should never happen: bind called with wrong argument types"
 
 lookupVariable :: Token -> Expression -> Interpreter RuntimeValue
@@ -283,7 +283,7 @@ stringify (String str) = str
 stringify Null = "nil"
 stringify (Boolean b) = show b
 stringify (NativeFunction _ name _) = "native function: " ++ name
-stringify (LoxFunction _ name _ _ _) = "function: " ++ name
+stringify (LoxFunction _ name _ _ _ _) = "function: " ++ name
 stringify (LoxClass name methods) = "class: " ++ name ++ " " ++ show (M.keys methods)
 stringify (LoxInstance klass _fields) = "instance: " ++ stringify klass
 stringify (Number num) = fixedNum
