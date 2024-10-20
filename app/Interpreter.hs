@@ -72,9 +72,12 @@ execute (ClassDeclaration nameToken methods) = do
   let classMethods = foldl' (\ms method -> methodDefine closure method ms) M.empty methods
   let klass = LoxClass (lexeme nameToken) classMethods
   defineVar (lexeme nameToken) klass
-execute (ReturnStatement expr) = do
-  exprVal <- evaluate expr
-  throwError $ ReturnValue exprVal
+execute (ReturnStatement maybeExpr) = do
+  case maybeExpr of
+    Nothing -> throwError $ ReturnValue Null
+    Just expr -> do
+      exprVal <- evaluate expr
+      throwError $ ReturnValue exprVal
 
 evaluate :: Expression -> Interpreter RuntimeValue
 evaluate (Literal (NumberLit num)) = return $ Number num
@@ -195,7 +198,13 @@ call (LoxFunction arity name argNames body closure isInitializer) args = do
     mapM_ (\(argName, a) -> defineVar argName a) (zip argNames args) -- assign the params
     execute body -- run the body in this new env with the params defined
   either (\err -> case err of
-                    ReturnValue val -> return val
+                    ReturnValue val -> if isInitializer
+                      then do
+                        maybeThis <- findVar "this" closure
+                        case maybeThis of
+                          Just this -> return this
+                          Nothing -> throwError $ RuntimeError "Should never happen: Could not find `this` variable in initializer env."
+                      else return val
                     _ -> throwError err
          )
          (\_res -> do

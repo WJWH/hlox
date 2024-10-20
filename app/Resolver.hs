@@ -43,12 +43,17 @@ resolveStatement (IfStatement condition trueBranch falseBranch) = do
 resolveStatement (WhileStatement condition body) = do
   resolveExpression condition
   resolveStatement body
-resolveStatement (ReturnStatement expr) = do
+resolveStatement (ReturnStatement maybeExpr) = do
   currentFunctionType <- gets currentFunction
-  case currentFunctionType of
-    None -> throwError . ResolverError $ "Can't return from top-level code." -- can only `return` from functions
-    Function -> resolveExpression expr
-    Method -> resolveExpression expr
+  case maybeExpr of
+    Nothing -> case currentFunctionType of
+      None -> throwError . ResolverError $ "Can't return from top-level code." -- can only `return` from functions
+      _ -> return () -- only when not in any function there's an error, all other cases just do nothing
+    Just expr -> case currentFunctionType of
+      None -> throwError . ResolverError $ "Can't return from top-level code." -- can only `return` from functions
+      Function -> resolveExpression expr
+      Method -> resolveExpression expr
+      Initializer -> throwError . ResolverError $ "Can't return value from initializer code." -- only empty return in initializers
 resolveStatement (ClassDeclaration nameToken methods) = do
   enclosingClass <- gets currentClass -- stash the current class type in this var for now
   modify $ \s -> s { currentClass = InClass } -- then update current class type to the type from the args
@@ -59,7 +64,9 @@ resolveStatement (ClassDeclaration nameToken methods) = do
   let thisScope = M.insert "this" True currentScope
   modify $ \s -> s { scopes = (thisScope : parentScopes) }
   -- declare all methods
-  forM_ methods $ \method -> resolveFunction method Method
+  forM_ methods $ \method -> do
+    let declarationType = if nameFromFunction method == "init" then Initializer else Method
+    resolveFunction method declarationType
   endScope
   modify $ \s -> s { currentClass = enclosingClass }
 resolveStatement (EmptyStatement) = return ()
@@ -165,3 +172,7 @@ findDepth (scope:parentScopes) varname = case M.lookup varname scope of
   Just True -> Just 0
   Just False -> Nothing -- we found it, but it's still being initialised.
   Nothing -> fmap (+1) $ findDepth parentScopes varname -- See if we can find it in one of the parent scopes
+
+nameFromFunction :: Statement -> String
+nameFromFunction (FunctionDeclaration nameToken _params _body) = lexeme nameToken
+nameFromFunction _ = error "nameFromFunction: tried to find name of non-function"
