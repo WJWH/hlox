@@ -115,7 +115,7 @@ instance Eq RuntimeValue where
   (==) (LoxFunction _ _ _ _ _ _) (LoxFunction _ _ _ _ _ _) = False -- functions cannot be equal-ed
   (==) (NativeFunction _ _ _) (NativeFunction _ _ _) = False
   (==) (LoxClass name1 _) (LoxClass name2 _) = name1 == name2
-  (==) (LoxInstance name1 _fields1) (LoxInstance name2 _fields2) = name1 == name2 -- Surely not correct, but OK for now
+  (==) (LoxInstance name1 fields1) (LoxInstance name2 fields2) = name1 == name2 && fields1 == fields2
   (==) _ _ = False -- type mismatch
 
 -- Inspired by https://github.com/ccntrq/loxomotive/blob/master/src/Loxomotive/Interpreter.hs,
