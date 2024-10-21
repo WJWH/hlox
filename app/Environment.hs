@@ -82,7 +82,7 @@ setVar name val (Env parent bindingsRef) = do
       Nothing -> return Nothing -- no parent available, so the var to update couldn't be found
       Just p -> setVar name val p -- maybe the parent has the var, recurse upward
 
--- used for defining 'this' in the scope of class methods. Since it mutates the env in-place, no return
+-- used for defining 'this' and 'super' in the scope of class methods. Since it mutates the env in-place, no return
 -- value is needed
 defineVarRaw :: String -> RuntimeValue -> Env -> Interpreter ()
 defineVarRaw name val (Env _parent bindingsRef) = liftIO $ modifyIORef bindingsRef $ M.insert name val
