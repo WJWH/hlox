@@ -72,6 +72,7 @@ data Expression = Grouping Expression
                 | Call Expression Token [Expression]
                 | Get Expression Expression Token -- callee, property name (always an identifier), name token
                 | Set Expression Expression Token Expression -- callee, property name, name token, value
+                | Super Token Expression -- token for disambiguation and the identifier for the method to be called on the superclass
                 | This Token
                 deriving (Show,Eq,Ord)
 
