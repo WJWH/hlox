@@ -64,6 +64,12 @@ resolveStatement (ClassDeclaration nameToken maybeSuperclass methods) = do
     Just superclass -> do
       when ((lexeme nameToken) == (lexeme $ varToToken superclass)) $ throwError . ResolverError $ "A class can't inherit from itself."
       resolveExpression superclass
+  -- if the class has a superclass, we make a separate scope surrounding all its methods that
+  when (isJust maybeSuperclass) $ do
+    beginScope
+    (currentScope:parentScopes) <- gets scopes
+    let superScope = M.insert "super" True currentScope
+    modify $ \s -> s { scopes = (superScope : parentScopes) }
   beginScope -- uuuuuuuuuuuu does this conflict with the beginScope in defineFunction???
   (currentScope:parentScopes) <- gets scopes
   let thisScope = M.insert "this" True currentScope
@@ -73,6 +79,7 @@ resolveStatement (ClassDeclaration nameToken maybeSuperclass methods) = do
     let declarationType = if nameFromFunction method == "init" then Initializer else Method
     resolveFunction method declarationType
   endScope
+  when (isJust maybeSuperclass) $ endScope -- don't forget to close the surrounding scope if there's a superclass
   modify $ \s -> s { currentClass = enclosingClass }
 resolveStatement (EmptyStatement) = return ()
 
@@ -108,6 +115,9 @@ resolveExpression expr@(This tok) = do
   case currentClassType of
     NoClass -> throwError . ResolverError $ "Can't use `this` outside class definitions."
     InClass -> resolveLocal expr (lexeme tok)
+resolveExpression super@(Super tok _expr) = do
+  -- the expression is just a method name and doesn't need resolving (?)
+  resolveLocal super (lexeme tok)
 
 
 -- puts an entry in the "locals" map if the variable can actually be found in one of
@@ -184,4 +194,4 @@ nameFromFunction _ = error "nameFromFunction: tried to find name of non-function
 
 varToToken :: Expression -> Token
 varToToken (Variable tok) = tok
-varToToken _ = error "Unreachable, tried to call varName on non-variable runtime value"
+varToToken _ = error "Unreachable, tried to call varToToken on non-variable expression"
