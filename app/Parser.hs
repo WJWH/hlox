@@ -51,6 +51,13 @@ this = do
   tok <- matchToken THIS
   return $ This tok
 
+super :: TokenParser Expression
+super = do
+  tok <- matchToken SUPER
+  matchToken DOT
+  methodName <- identifier
+  return $ Super tok methodName
+
 literal :: TokenParser Expression
 literal = do
   litContents <- matchLiteral
@@ -169,7 +176,7 @@ assignment = do
     _ -> unexpected "Invalid assignment target" -- needs better reporting?
 
 primary :: TokenParser Expression
-primary = this <|> literal <|> identifier <|> grouping
+primary = super <|> this <|> literal <|> identifier <|> grouping
 
 -- some utility functions to handle expressions with multiple operators like 1+2+3+4 and !!abc
 foldBinaryOps :: Expression -> [(BinaryOperation, Expression)] -> Expression
