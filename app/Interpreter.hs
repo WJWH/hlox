@@ -68,7 +68,15 @@ execute (FunctionDeclaration nameToken args body) = do
   let fn = LoxFunction (length args) (lexeme nameToken) (map lexeme args) body closure False
   defineVar (lexeme nameToken) fn
 execute (ClassDeclaration nameToken maybeSuperclass methods) = do
-  closure <- gets env -- all methods share the same env I think?
+  currentEnv <- gets env
+  -- all methods share the same env I think?
+  closure <- case maybeSuperclass of
+    Nothing -> return currentEnv -- nothing to see here, methods just get the current env
+    Just superclass -> do -- make a new scope with "super" in it
+      newEnv <- mkChildEnv currentEnv
+      actualSuperclass <- evaluate superclass
+      defineVarRaw "super" actualSuperclass newEnv
+      return newEnv
   let classMethods = foldl' (\ms method -> methodDefine closure method ms) M.empty methods
   superclass <- case maybeSuperclass of
     Nothing -> return $ Nothing
@@ -182,6 +190,18 @@ evaluate (Set callee (Variable property) _tok valueExpr) = do
 evaluate (Set _ _ _ _) = do
   throwError $ RuntimeError "Should never happen: set expression was called with a non-variable property value."
 evaluate expr@(This nameToken) = lookupVariable nameToken expr
+evaluate super@(Super _superToken expr) = do
+  localVars <- gets locals
+  depth <- case M.lookup super localVars of
+    Nothing -> throwError $ RuntimeError "Should never happen: super variable was not found."
+    Just depth -> return depth
+  superclass <- getVarAt (depth) "super"
+  obj <- getVarAt (depth-1) "this" -- we want the "this" that is just inside the scope for the super object, to get the correct closure
+  let methodName = lexeme (varToToken expr)
+  let maybeMethod = findMethod methodName superclass
+  case maybeMethod of
+    Nothing -> throwError $ RuntimeError "Could not find method on superclass"
+    Just method -> bind obj method
 
 call :: RuntimeValue -> [RuntimeValue] -> Interpreter RuntimeValue
 call (NativeFunction _arity _name code) args = do
@@ -326,3 +346,7 @@ stringify (LoxInstance klass _fields) = "instance: " ++ stringify klass
 stringify (Number num) = fixedNum
   where fixedNum = if take 2 (reverse shownNum) == "0." then init . init $ shownNum else shownNum
         shownNum = show num
+
+varToToken :: Expression -> Token
+varToToken (Variable tok) = tok
+varToToken _ = error "Unreachable, tried to call varToToken on non-variable expression"
