@@ -56,7 +56,8 @@ resolveStatement (ReturnStatement maybeExpr) = do
       Initializer -> throwError . ResolverError $ "Can't return value from initializer code." -- only empty return in initializers
 resolveStatement (ClassDeclaration nameToken maybeSuperclass methods) = do
   enclosingClass <- gets currentClass -- stash the current class type in this var for now
-  modify $ \s -> s { currentClass = InClass } -- then update current class type to the type from the args
+  let newClassType = if isJust maybeSuperclass then InSubClass else InClass
+  modify $ \s -> s { currentClass = newClassType } -- then update current class type to the type from the args
   declare (lexeme nameToken)
   define (lexeme nameToken)
   case maybeSuperclass of
@@ -114,10 +115,14 @@ resolveExpression expr@(This tok) = do
   currentClassType <- gets currentClass
   case currentClassType of
     NoClass -> throwError . ResolverError $ "Can't use `this` outside class definitions."
-    InClass -> resolveLocal expr (lexeme tok)
+    _ -> resolveLocal expr (lexeme tok)
 resolveExpression super@(Super tok _expr) = do
-  -- the expression is just a method name and doesn't need resolving (?)
-  resolveLocal super (lexeme tok)
+  -- the expression is just a method name and doesn't need resolving
+  currentClassType <- gets currentClass
+  case currentClassType of
+    NoClass -> throwError . ResolverError $ "Can't use `super` outside of a class."
+    InClass -> throwError . ResolverError $ "Can't use `super` in a class with no superclass."
+    InSubClass -> resolveLocal super (lexeme tok)
 
 
 -- puts an entry in the "locals" map if the variable can actually be found in one of
