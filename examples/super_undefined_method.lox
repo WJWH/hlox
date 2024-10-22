@@ -1,0 +1,14 @@
+class Doughnut {
+  cook() {
+    print "Fry until golden brown.";
+  }
+}
+
+class BostonCream < Doughnut {
+  cook() {
+    super.borp();
+    print "Pipe full of custard and coat with chocolate.";
+  }
+}
+
+BostonCream().cook(); // sadly, Doughnut has no borp() method so this gives a runtime error that the method could not be found on the superclass

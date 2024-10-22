@@ -1,0 +1,6 @@
+class Eclair {
+  cook() {
+    super.cook(); // gives resolver error because Eclair is not a subclass
+    print "Pipe full of crème pâtissière.";
+  }
+}

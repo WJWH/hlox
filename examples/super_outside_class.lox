@@ -1,0 +1,1 @@
+super.notEvenInAClass(); // gives resolver error since you can only call super inside subclasses
